@@ -93,17 +93,39 @@ public sealed partial class ModEntry
     private void FocusHotkey(GameMenu menu, int index)
     {
         var page = GetInventoryPage(menu);
-        if (page is null || !_customHotkeyComponents.TryGetValue(index, out ClickableComponent? component))
+
+        if (page is null)
+        {
+            // Monitor.Log("FOCUS FAILED: inventory page is null", LogLevel.Warn);
             return;
+        }
+
+        if (!_customHotkeyComponents.TryGetValue(index, out ClickableComponent? component))
+        {
+            UpdateHotkeySnapComponents(menu);
+
+            if (!_customHotkeyComponents.TryGetValue(index, out component))
+            {
+                // Monitor.Log(
+                //     $"FOCUS FAILED: shortcut {index} still missing after rebuilding components",
+                //     LogLevel.Warn);
+                return;
+            }
+        }
 
         page.currentlySnappedComponent = component;
         menu.currentlySnappedComponent = component;
         _controllerAddHotkeyFocused = false;
-        var snapCursor = SnapCursorMethod;
-        SnapControllerCursor(page, snapCursor);
-        // Monitor.Log($"Controller focus moved to hotkey [{index}] '{_config.Tabs[index].Name}' at {component.bounds}.", LogLevel.Trace);
-    }
 
+        SnapControllerCursor(page, SnapCursorMethod);
+
+        Monitor.Log(
+            $"FOCUS RESULT: requested={index}, " +
+            $"PageFocus={page.currentlySnappedComponent?.name}/{page.currentlySnappedComponent?.myID}, " +
+            $"MenuFocus={menu.currentlySnappedComponent?.name}/{menu.currentlySnappedComponent?.myID}",
+            LogLevel.Info);
+    }
+    
     private bool TryGetHotkeyComponentIndex(ClickableComponent? component, out int index)
     {
         index = -1;
@@ -471,6 +493,23 @@ public sealed partial class ModEntry
             component.downNeighborID = row > 0
                 ? 988000 + index - 10
                 : FindNearestNativeTabId(menu, bounds.Center.X);
+        }
+        // ADD NEW CODE HERE
+        if (_customTabBounds.Count > 0
+            && GetNativeTabComponents(menu) is IList nativeTabs)
+        {
+            foreach (ClickableComponent nativeTab in nativeTabs
+                         .OfType<ClickableComponent>())
+            {
+                if (!TryGetHotkeyNearestToTab(nativeTab, out int index))
+                    continue;
+
+                if (_customHotkeyComponents.TryGetValue(
+                        index, out ClickableComponent? hotkey))
+                {
+                    nativeTab.upNeighborID = hotkey.myID;
+                }
+            }
         }
     }
 

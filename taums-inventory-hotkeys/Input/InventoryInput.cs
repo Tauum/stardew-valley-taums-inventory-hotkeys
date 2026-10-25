@@ -92,21 +92,6 @@ public sealed partial class ModEntry
                 Helper.Input.Suppress(e.Button);
                 return true;
             }
-//
-            // var focusedNativeTab = TryGetNativeTabIndex(menu, focusedComponent, out _)
-            //     ? focusedComponent
-            //     : TryGetNativeTabIndex(menu, menu.currentlySnappedComponent, out _)
-            //         ? menu.currentlySnappedComponent
-            //         : null;
-            // if (_hotkeysVisible && vertical < 0 && focusedNativeTab is not null
-            //     && TryGetHotkeyNearestToTab(focusedNativeTab, out var hotkeyIndex))
-            // {
-            //     FocusHotkey(menu, hotkeyIndex);
-            //     Helper.Input.Suppress(e.Button);
-            //     return true;
-            // }
-            //
-            
             
             var focusedNativeTab = TryGetNativeTabIndex(menu, focusedComponent, out _)
                 ? focusedComponent
