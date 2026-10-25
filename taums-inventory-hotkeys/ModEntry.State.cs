@@ -1,0 +1,101 @@
+using Microsoft.Xna.Framework;
+using StardewModdingAPI;
+using StardewModdingAPI.Utilities;
+using StardewValley.Menus;
+using System.Reflection;
+
+namespace Taums_menu_supreme;
+
+public sealed partial class ModEntry
+{
+    private const int MaxCustomTabs = 40;
+    private HubConfig _config = new();
+    private GameMenu? _editorParent;
+    private Rectangle _plusTabBounds;
+    private ClickableComponent? _controllerAddHotkeyComponent;
+
+    private bool _controllerAddHotkeyFocused;
+    private bool _hotkeysVisible = true;
+    private int? _pendingEditorReturnFocus;
+    private bool _snappingControllerCursor;
+    private Point? _pendingControllerCursorPosition;
+    private bool _useControllerTooltipGlyphs;
+    private GameMenu? _snapGraphMenu;
+    private IClickableMenu? _snapGraphInventoryPage;
+    private ClickableComponent? _snapGraphInventoryTab;
+    private bool _addedInventoryTabToClickableSet;
+    private int _originalInventoryTabLeftNeighborId;
+    private const int AddHotkeySnapId = 987654;
+    private const int EditorNameSnapId = 987655;
+    private const int EditorIconPreviousSnapId = 987656;
+    private const int EditorIconNextSnapId = 987657;
+    private const int EditorIconDiceSnapId = 987658;
+    private const int EditorKeybindSnapId = 987659;
+    private const int EditorCancelSnapId = 987660;
+    private const int EditorCreateSnapId = 987661;
+    private const int EditorDeleteSnapId = 987662;
+    private const int DeleteConfirmYesSnapId = 987663;
+    private const int DeleteConfirmNoSnapId = 987664;
+    private readonly List<(Rectangle bounds, int index)> _customTabBounds = new();
+    private readonly Dictionary<int, ClickableComponent> _customHotkeyComponents = new();
+    private readonly List<Rectangle> _layoutNativeTabs = new();
+    private GameMenu? _layoutMenu;
+    private IClickableMenu? _layoutPage;
+    private Rectangle _layoutMenuBounds;
+    private Rectangle _layoutViewport;
+    private Rectangle _layoutNativeTabBounds;
+    private int _layoutHotkeyCount = -1;
+    private bool _layoutHotkeysVisible;
+    private bool _layoutDirty = true;
+
+    private Rectangle _editorBounds;
+    private Rectangle _editorIconBounds;
+    private Rectangle _editorIconCarouselBounds;
+    private Rectangle _editorIconPreviousBounds;
+    private Rectangle _editorIconNextBounds;
+    private Rectangle _editorIconCounterBounds;
+    private Rectangle _editorIconDiceBounds;
+    private Rectangle _editorNameBounds;
+    private Rectangle _editorNameHitBounds;
+    private Rectangle _editorKeybindBounds;
+    private Rectangle _editorKeybindHitBounds;
+    private Rectangle _editorCreateBounds;
+    private Rectangle _editorCancelBounds;
+    private Rectangle _editorDeleteBounds;
+    private Rectangle _deleteConfirmBounds;
+    private Rectangle _deleteConfirmYesBounds;
+    private Rectangle _deleteConfirmNoBounds;
+
+    private int _draftIcon;
+    private int _editingTabIndex = -1;
+    private bool _confirmingDelete;
+    private KeybindList _draftKeybind = KeybindList.Parse("");
+    private string _draftName = "New hotkey";
+    private bool _nameEditFocused;
+    private bool _namePrefillSelected = true;
+    private bool _capturingDraftKeybind;
+    private Rectangle _keybindCaptureBounds;
+    private object? _gmcmKeybindOverlay;
+    private Type? _gmcmKeybindOverlayType;
+    private MethodInfo? _gmcmDrawMethod;
+    private MethodInfo? _gmcmClickMethod;
+    private MethodInfo? _gmcmButtonsChangedMethod;
+    private FieldInfo? _gmcmKeybindEditField;
+    private FieldInfo? _gmcmButtonsField;
+    private PropertyInfo? _gmcmFinishedProperty;
+    private string _gmcmFocusedButtonName = "Add";
+    private bool _skipGmcmControllerAOnButtonsChanged;
+    private readonly EmojiCatalog _emojiCatalog = new();
+    private readonly HashSet<SButton> _simulatedButtonsAwaitingDelivery = new();
+    private readonly Dictionary<SButton, int> _simulatedButtonsAwaitingChangedEvent = new();
+    private PendingKeybind? _pendingKeybind;
+    private IGenericModConfigMenuApi? _gmcmApi;
+    private readonly Dictionary<int, KeybindList> _gmcmDraftKeybinds = new();
+    private static readonly FieldInfo[] GameMenuFields = typeof(GameMenu).GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+    private static readonly FieldInfo? GameMenuTabsField = GameMenuFields.FirstOrDefault(field => field.Name == "tabs");
+    private static readonly FieldInfo? CurrentTabField = typeof(GameMenu).GetField("currentTab", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+    private static readonly PropertyInfo? CurrentTabProperty = typeof(GameMenu).GetProperty("currentTab", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+    private static readonly MethodInfo? SnapCursorMethod = typeof(IClickableMenu).GetMethod("snapCursorToCurrentSnappedComponent", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+
+    private sealed record PendingKeybind(KeybindList Keybinds, int TicksRemaining);
+}
