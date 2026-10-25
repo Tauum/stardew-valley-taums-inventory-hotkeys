@@ -1,7 +1,7 @@
 {
     "Name":  "Taum\u0027s Inventory Hotkeys",
     "Author":  "Taum",
-    "Version":  "1.0.0",
+    "Version":  "1.0.1",
     "Description":  "Add inventory tabs that trigger your configured keyboard or controller shortcuts.",
     "UniqueID": "Taum.InventoryHotkeys",
     "EntryDll":  "taums-inventory-hotkeys.dll",

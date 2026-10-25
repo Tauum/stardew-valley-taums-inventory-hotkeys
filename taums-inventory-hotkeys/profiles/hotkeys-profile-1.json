@@ -1,0 +1,43 @@
+{
+  "IsCreated": true,
+  "Columns": 10,
+  "Rows": 4,
+  "Tabs": [
+    {
+      "Name": "Open Chests Anywhere",
+      "Description": "Chests Anywhere",
+      "Icon": 152,
+      "Keybinds": "OemPlus"
+    },
+    {
+      "Name": "Quest Helper",
+      "Description": "Quest Helper",
+      "Icon": 146,
+      "Keybinds": "None"
+    },
+    {
+      "Name": "Chirp Valley",
+      "Description": "Chirp Valley",
+      "Icon": 75,
+      "Keybinds": "P"
+    },
+    {
+      "Name": "Horse menu",
+      "Description": "Horse Overhaul",
+      "Icon": 102,
+      "Keybinds": "OemSemicolon"
+    },
+    {
+      "Name": "Horse pet menu",
+      "Description": "Horse Overhaul",
+      "Icon": 25,
+      "Keybinds": "OemQuotes"
+    },
+    {
+      "Name": "Toggle Pocket Glide",
+      "Description": "Pocket Glide",
+      "Icon": 92,
+      "Keybinds": "R"
+    }
+  ]
+}

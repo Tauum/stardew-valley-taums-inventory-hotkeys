@@ -4,15 +4,36 @@ using StardewModdingAPI.Utilities;
 using StardewValley.Menus;
 using System.Reflection;
 
-namespace Taums_menu_supreme;
+namespace Taums_inventory_hotkeys;
 
 public sealed partial class ModEntry
 {
     private const int MaxCustomTabs = 40;
+    private int GridCapacity => _config.Columns * _config.Rows;
+    private bool UseChestGrid => _config.HotkeyStyle == "ChestGrid";
     private HubConfig _config = new();
-    private GameMenu? _editorParent;
+    private StardewValley.Item? _plusTabFloorTvIcon;
+    private IClickableMenu? _editorParent;
+    private bool _editorOpenedFromConfig;
+    private readonly Dictionary<string, Rectangle> _gmcmActionBounds = new();
+    private readonly Dictionary<string, Rectangle> _gmcmControlBounds = new();
+    private readonly Dictionary<string, Action> _gmcmControlActions = new();
     private Rectangle _plusTabBounds;
+    private Rectangle _profilePreviousBounds;
+    private Rectangle _profileNextBounds;
+    private Rectangle _chestGridBounds;
+    private readonly List<InventoryMenu> _chestInventoryRows = new();
+    private int _chestGridColumns;
+    private int _chestGridRows;
+    private int _chestSlotSize;
+    private int? _chestDragSourceIndex;
+    private int? _chestDragTargetIndex;
+    private Point _chestDragStart;
+    private Point _chestDragCursor;
+    private bool _chestDragActive;
     private ClickableComponent? _controllerAddHotkeyComponent;
+    private ClickableComponent? _controllerProfilePreviousComponent;
+    private ClickableComponent? _controllerProfileNextComponent;
 
     private bool _controllerAddHotkeyFocused;
     private bool _hotkeysVisible = true;
@@ -26,7 +47,10 @@ public sealed partial class ModEntry
     private bool _addedInventoryTabToClickableSet;
     private int _originalInventoryTabLeftNeighborId;
     private const int AddHotkeySnapId = 987654;
+    private const int ProfilePreviousSnapId = 987665;
+    private const int ProfileNextSnapId = 987666;
     private const int EditorNameSnapId = 987655;
+    private const int EditorDescriptionSnapId = 987667;
     private const int EditorIconPreviousSnapId = 987656;
     private const int EditorIconNextSnapId = 987657;
     private const int EditorIconDiceSnapId = 987658;
@@ -57,6 +81,8 @@ public sealed partial class ModEntry
     private Rectangle _editorIconDiceBounds;
     private Rectangle _editorNameBounds;
     private Rectangle _editorNameHitBounds;
+    private Rectangle _editorDescriptionBounds;
+    private Rectangle _editorDescriptionHitBounds;
     private Rectangle _editorKeybindBounds;
     private Rectangle _editorKeybindHitBounds;
     private Rectangle _editorCreateBounds;
@@ -71,6 +97,7 @@ public sealed partial class ModEntry
     private bool _confirmingDelete;
     private KeybindList _draftKeybind = KeybindList.Parse("");
     private string _draftName = "New hotkey";
+    private string _draftDescription = "";
     private bool _nameEditFocused;
     private bool _namePrefillSelected = true;
     private bool _capturingDraftKeybind;
@@ -89,13 +116,21 @@ public sealed partial class ModEntry
     private readonly HashSet<SButton> _simulatedButtonsAwaitingDelivery = new();
     private readonly Dictionary<SButton, int> _simulatedButtonsAwaitingChangedEvent = new();
     private PendingKeybind? _pendingKeybind;
+    private HotkeyNotification? _hotkeyNotification;
     private IGenericModConfigMenuApi? _gmcmApi;
-    private readonly Dictionary<int, KeybindList> _gmcmDraftKeybinds = new();
+    private int _selectedHotkeyConfigIndex;
+    private Type? _gmcmDropdownType;
+    private bool _gmcmDropdownTypeResolved;
+    private bool _gmcmControllerNavigationActive;
+    private bool _waitForSettingsChordRelease;
+    private bool _gmcmVirtualCursorInitialized;
+    private string _gmcmConfigOverlayFocusedName = "Add";
     private static readonly FieldInfo[] GameMenuFields = typeof(GameMenu).GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
     private static readonly FieldInfo? GameMenuTabsField = GameMenuFields.FirstOrDefault(field => field.Name == "tabs");
     private static readonly FieldInfo? CurrentTabField = typeof(GameMenu).GetField("currentTab", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
     private static readonly PropertyInfo? CurrentTabProperty = typeof(GameMenu).GetProperty("currentTab", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
     private static readonly MethodInfo? SnapCursorMethod = typeof(IClickableMenu).GetMethod("snapCursorToCurrentSnappedComponent", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
 
-    private sealed record PendingKeybind(KeybindList Keybinds, int TicksRemaining);
+    private sealed record PendingKeybind(string Name, KeybindList Keybinds, int Icon, int TicksRemaining);
+    private sealed record HotkeyNotification(string Message, int? Icon, DateTime ExpiresAt);
 }

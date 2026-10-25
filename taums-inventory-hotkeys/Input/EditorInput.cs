@@ -5,7 +5,7 @@ using StardewModdingAPI.Utilities;
 using StardewValley;
 using StardewValley.Menus;
 
-namespace Taums_menu_supreme;
+namespace Taums_inventory_hotkeys;
 
 public sealed partial class ModEntry
 {

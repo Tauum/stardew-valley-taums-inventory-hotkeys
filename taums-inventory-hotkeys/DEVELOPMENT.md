@@ -10,8 +10,10 @@ and sends its configured key to the game after a short delay.
 ## Build
 
 ```powershell
-dotnet build .\Taums-menu-supreme\Taums-menu-supreme.csproj --configuration Debug
+dotnet build .\taums-inventory-hotkeys\taums-inventory-hotkeys.csproj --configuration Debug
 ```
 
-Automatic deployment is disabled. Close the game, then copy the built DLL and
-manifest into the game's Mods folder before launching SMAPI.
+Automatic deployment is disabled. Close the game, then copy
+`taums-inventory-hotkeys.dll`, `taums-inventory-hotkeys.deps.json`, and
+`manifest.json` into the game's Mods folder before launching SMAPI. Keep the
+existing `config.json` there to preserve your hotkeys.

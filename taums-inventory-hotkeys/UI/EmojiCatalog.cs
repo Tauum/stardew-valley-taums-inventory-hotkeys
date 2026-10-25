@@ -2,7 +2,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using StardewValley;
 
-namespace Taums_menu_supreme;
+namespace Taums_inventory_hotkeys;
 
 internal sealed class EmojiCatalog
 {

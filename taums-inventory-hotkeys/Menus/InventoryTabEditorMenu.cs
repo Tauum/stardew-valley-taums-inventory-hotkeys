@@ -4,17 +4,17 @@ using Microsoft.Xna.Framework.Input;
 using StardewValley;
 using StardewValley.Menus;
 
-namespace Taums_menu_supreme;
+namespace Taums_inventory_hotkeys;
 
 public sealed partial class ModEntry
 {
     private sealed class InventoryTabEditorMenu : IClickableMenu
     {
         private readonly ModEntry _mod;
-        private readonly GameMenu _parent;
+        private readonly IClickableMenu _parent;
         private readonly Dictionary<int, ClickableComponent> _focusComponents = new();
 
-        public InventoryTabEditorMenu(ModEntry mod, GameMenu parent)
+        public InventoryTabEditorMenu(ModEntry mod, IClickableMenu parent)
             : base(parent.xPositionOnScreen, parent.yPositionOnScreen, parent.width, parent.height)
         {
             _mod = mod;
@@ -22,16 +22,19 @@ public sealed partial class ModEntry
             allClickableComponents ??= new List<ClickableComponent>();
             AddFocusComponent(EditorNameSnapId, "Hotkey name", mod._editorNameHitBounds,
                 left: ClickableComponent.SNAP_AUTOMATIC, right: ClickableComponent.SNAP_AUTOMATIC,
-                up: ClickableComponent.SNAP_AUTOMATIC, down: EditorIconPreviousSnapId);
+                up: ClickableComponent.SNAP_AUTOMATIC, down: EditorDescriptionSnapId);
+            AddFocusComponent(EditorDescriptionSnapId, "Hotkey description", mod._editorDescriptionHitBounds,
+                left: ClickableComponent.SNAP_AUTOMATIC, right: ClickableComponent.SNAP_AUTOMATIC,
+                up: EditorNameSnapId, down: EditorIconPreviousSnapId);
             AddFocusComponent(EditorIconPreviousSnapId, "Previous icon", mod._editorIconPreviousBounds,
                 left: ClickableComponent.SNAP_AUTOMATIC, right: EditorIconNextSnapId,
-                up: EditorNameSnapId, down: EditorKeybindSnapId);
+                up: EditorDescriptionSnapId, down: EditorKeybindSnapId);
             AddFocusComponent(EditorIconNextSnapId, "Next icon", mod._editorIconNextBounds,
                 left: EditorIconPreviousSnapId, right: EditorIconDiceSnapId,
-                up: EditorNameSnapId, down: EditorKeybindSnapId);
+                up: EditorDescriptionSnapId, down: EditorKeybindSnapId);
             AddFocusComponent(EditorIconDiceSnapId, "Random icon", mod._editorIconDiceBounds,
                 left: EditorIconNextSnapId, right: ClickableComponent.SNAP_AUTOMATIC,
-                up: EditorNameSnapId, down: EditorKeybindSnapId);
+                up: EditorDescriptionSnapId, down: EditorKeybindSnapId);
             AddFocusComponent(EditorKeybindSnapId, "Assign keybind", mod._editorKeybindHitBounds,
                 left: ClickableComponent.SNAP_AUTOMATIC, right: EditorCreateSnapId,
                 up: EditorIconNextSnapId, down: EditorCancelSnapId);
@@ -68,12 +71,15 @@ public sealed partial class ModEntry
             ?? _focusComponents[EditorNameSnapId];
 
         public void FocusNameInput() => Focus(EditorNameSnapId);
+        public void FocusDescriptionInput() => Focus(EditorDescriptionSnapId);
 
         public void ActivateFocused()
         {
             var focused = FocusedComponent;
             if (focused.myID == EditorNameSnapId || _mod._editorNameBounds.Contains(Game1.getMouseX(), Game1.getMouseY()))
                 _mod.OpenNativeNameInput(this);
+            else if (focused.myID == EditorDescriptionSnapId || _mod._editorDescriptionBounds.Contains(Game1.getMouseX(), Game1.getMouseY()))
+                _mod.OpenNativeDescriptionInput(this);
             else
                 _mod.HandleEditorClick(focused.bounds.Center.X, focused.bounds.Center.Y);
         }
@@ -83,6 +89,7 @@ public sealed partial class ModEntry
         public void UpdateFocusBounds()
         {
             _focusComponents[EditorNameSnapId].bounds = _mod._editorNameHitBounds;
+            _focusComponents[EditorDescriptionSnapId].bounds = _mod._editorDescriptionHitBounds;
             _focusComponents[EditorIconPreviousSnapId].bounds = _mod._editorIconPreviousBounds;
             _focusComponents[EditorIconNextSnapId].bounds = _mod._editorIconNextBounds;
             _focusComponents[EditorIconDiceSnapId].bounds = _mod._editorIconDiceBounds;
@@ -125,16 +132,18 @@ public sealed partial class ModEntry
 
             int nextId = (currentId, horizontal, vertical) switch
             {
-                (EditorNameSnapId, _, > 0) => EditorIconPreviousSnapId,
+                (EditorNameSnapId, _, > 0) => EditorDescriptionSnapId,
+                (EditorDescriptionSnapId, _, < 0) => EditorNameSnapId,
+                (EditorDescriptionSnapId, _, > 0) => EditorIconPreviousSnapId,
                 (EditorIconPreviousSnapId, > 0, _) => EditorIconNextSnapId,
-                (EditorIconPreviousSnapId, _, < 0) => EditorNameSnapId,
+                (EditorIconPreviousSnapId, _, < 0) => EditorDescriptionSnapId,
                 (EditorIconPreviousSnapId, _, > 0) => EditorKeybindSnapId,
                 (EditorIconNextSnapId, < 0, _) => EditorIconPreviousSnapId,
                 (EditorIconNextSnapId, > 0, _) => EditorIconDiceSnapId,
-                (EditorIconNextSnapId, _, < 0) => EditorNameSnapId,
+                (EditorIconNextSnapId, _, < 0) => EditorDescriptionSnapId,
                 (EditorIconNextSnapId, _, > 0) => EditorKeybindSnapId,
                 (EditorIconDiceSnapId, < 0, _) => EditorIconNextSnapId,
-                (EditorIconDiceSnapId, _, < 0) => EditorNameSnapId,
+                (EditorIconDiceSnapId, _, < 0) => EditorDescriptionSnapId,
                 (EditorIconDiceSnapId, _, > 0) => EditorKeybindSnapId,
                 (EditorKeybindSnapId, _, < 0) => EditorIconNextSnapId,
                 (EditorKeybindSnapId, _, > 0) => EditorCancelSnapId,
@@ -174,15 +183,21 @@ public sealed partial class ModEntry
 
         public override void draw(SpriteBatch b)
         {
-            _mod.EnsureLayout(_parent);
+            if (_parent is GameMenu gameMenu)
+                _mod.EnsureLayout(gameMenu);
+            else
+                _mod.RepositionEditorControls(_parent);
             UpdateFocusBounds();
-            _parent.draw(b);
-            if (IsInventoryPage(_parent))
+            if (!_mod._config.BlurEnabled || _mod._config.BlurOpacity <= 0)
             {
-                if (_mod._hotkeysVisible)
-                    _mod.DrawCustomTabs(b);
-                RedrawNativeTabs(b, _parent);
-                _mod.DrawPlusTab(b);
+                _parent.draw(b);
+                if (_parent is GameMenu inventoryMenu && IsInventoryPage(inventoryMenu))
+                {
+                    if (_mod._hotkeysVisible)
+                        _mod.DrawCustomTabs(b);
+                    RedrawNativeTabs(b, inventoryMenu);
+                    _mod.DrawPlusTab(b);
+                }
             }
             _mod.DrawEditor(b);
             if (_mod._capturingDraftKeybind)

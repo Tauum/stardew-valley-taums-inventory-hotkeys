@@ -9,15 +9,15 @@ using StardewValley.Menus;
 using System.Collections;
 using System.Reflection;
 
-namespace Taums_menu_supreme;
+namespace Taums_inventory_hotkeys;
 
 public sealed partial class ModEntry
 {
-    private void OpenEditor(GameMenu parent, int tabIndex = -1)
+    private void OpenEditor(IClickableMenu parent, int tabIndex = -1)
     {
         if (tabIndex < 0 && _config.Tabs.Count >= MaxCustomTabs)
         {
-            Game1.addHUDMessage(new HUDMessage("You can't add another hotkey. All four rows are full.", HUDMessage.error_type));
+            ShowGridFullMessage();
             // Monitor.Log($"Blocked add-hotkey editor: maximum capacity ({MaxCustomTabs}) reached.", LogLevel.Info);
             return;
         }
@@ -31,6 +31,7 @@ public sealed partial class ModEntry
             _draftIcon = selected.Icon;
             _draftKeybind = selected.Keybinds;
             _draftName = selected.Name;
+            _draftDescription = selected.Description;
             // Monitor.Log($"Opened hotkey editor for [{tabIndex}] '{_draftName}'.", LogLevel.Info);
         }
         else
@@ -39,13 +40,20 @@ public sealed partial class ModEntry
             _draftIcon = _emojiCatalog.Count == 0 ? 0 : _config.Tabs.Count % _emojiCatalog.Count;
             _draftKeybind = KeybindList.Parse("");
             _draftName = "New hotkey";
+            _draftDescription = "";
             // Monitor.Log($"Opened add-hotkey editor. Initial draft: name='{_draftName}', iconId={_draftIcon}, keybind='{_draftKeybind}'.", LogLevel.Info);
         }
         _nameEditFocused = false;
         _namePrefillSelected = true;
         _editorParent = parent;
-        EnsureLayout(parent);
+        _editorOpenedFromConfig = parent is not GameMenu;
+        if (parent is GameMenu gameMenu)
+            EnsureLayout(gameMenu);
+        else
+            RepositionEditorControls(parent, useViewport: true);
         Game1.activeClickableMenu = new InventoryTabEditorMenu(this, parent);
+        Game1.playSound("openBox");
+        LogDebug($"User action: opened {(tabIndex >= 0 ? "edit" : "create")} hotkey editor{(tabIndex >= 0 && tabIndex < _config.Tabs.Count ? $" for '{_config.Tabs[tabIndex].Name}'" : "")}, source={(parent is GameMenu ? "inventory" : "settings") }.");
     }
 
     private void OpenNativeNameInput(InventoryTabEditorMenu editor)
@@ -60,6 +68,19 @@ public sealed partial class ModEntry
             editor.FocusNameInput();
             // Monitor.Log($"Stardew name input accepted '{_draftName}'.", LogLevel.Info);
         }, "Hotkey name", _draftName);
+        Game1.activeClickableMenu = namingMenu;
+        if (_useControllerTooltipGlyphs || Game1.options.gamepadControls)
+            namingMenu.snapToDefaultClickableComponent();
+    }
+
+    private void OpenNativeDescriptionInput(InventoryTabEditorMenu editor)
+    {
+        var namingMenu = new HotkeyNamingMenu(value =>
+        {
+            _draftDescription = value.Trim();
+            Game1.activeClickableMenu = editor;
+            editor.FocusDescriptionInput();
+        }, "Hotkey description", _draftDescription);
         Game1.activeClickableMenu = namingMenu;
         if (_useControllerTooltipGlyphs || Game1.options.gamepadControls)
             namingMenu.snapToDefaultClickableComponent();
@@ -93,15 +114,25 @@ public sealed partial class ModEntry
         if (parent is null)
             return;
 
-        EnsureLayout(parent);
+        if (_editorOpenedFromConfig)
+        {
+            RegisterGenericModConfigMenu();
+            _gmcmApi?.OpenModMenu(ModManifest);
+            _editorOpenedFromConfig = false;
+            return;
+        }
+
+        if (parent is not GameMenu gameMenu)
+            return;
+        EnsureLayout(gameMenu);
         if (deleted)
         {
-            FocusInventoryTab(parent);
+            FocusInventoryTab(gameMenu);
             _pendingEditorReturnFocus = -1;
         }
         else if (editedIndex >= 0 && editedIndex < _config.Tabs.Count && _hotkeysVisible)
         {
-            FocusHotkey(parent, editedIndex);
+            FocusHotkey(gameMenu, editedIndex);
             _pendingEditorReturnFocus = editedIndex;
         }
     }
@@ -127,6 +158,7 @@ public sealed partial class ModEntry
             _emojiCatalog.EnsureLoaded();
             if (_emojiCatalog.Count > 0)
                 _draftIcon = Random.Shared.Next(_emojiCatalog.Count);
+            LogDebug($"User action: randomized icon for hotkey draft '{_draftName}' to icon {_draftIcon}.");
         }
         else if (_editorKeybindHitBounds.Contains(x, y))
         {
@@ -141,6 +173,12 @@ public sealed partial class ModEntry
             editor.FocusNameInput();
             OpenNativeNameInput(editor);
         }
+        else if (_editorDescriptionHitBounds.Contains(x, y))
+        {
+            if (Game1.activeClickableMenu is not InventoryTabEditorMenu editor)
+                return;
+            OpenNativeDescriptionInput(editor);
+        }
         else if (_editorCreateBounds.Contains(x, y))
         {
             SaveDraftHotkey();
@@ -148,8 +186,10 @@ public sealed partial class ModEntry
         else if (_editorCancelBounds.Contains(x, y))
         {
             // Monitor.Log($"Clicked Cancel for hotkey editor; draft discarded: name='{_draftName}', iconId={_draftIcon}, keybind='{_draftKeybind}'.", LogLevel.Info);
+            var fromConfig = _editorOpenedFromConfig;
             CloseEditor();
-            RegisterGenericModConfigMenu();
+            if (!fromConfig)
+                RegisterGenericModConfigMenu();
         }
         else if (_editingTabIndex >= 0 && _editorDeleteBounds.Contains(x, y))
         {
@@ -157,6 +197,7 @@ public sealed partial class ModEntry
                 return;
 
             _confirmingDelete = true;
+            LogDebug($"User action: opened delete confirmation for hotkey '{_draftName}'.");
             var confirmation = new DeleteConfirmationMenu(this, editor);
             Game1.activeClickableMenu = confirmation;
             confirmation.FocusCancel();
@@ -167,22 +208,29 @@ public sealed partial class ModEntry
     {
         if (_editingTabIndex < 0 && _config.Tabs.Count >= MaxCustomTabs)
         {
-            Game1.addHUDMessage(new HUDMessage("You can't add another hotkey. All four rows are full.", HUDMessage.error_type));
+            ShowGridFullMessage();
             // Monitor.Log($"Blocked hotkey creation: maximum capacity ({MaxCustomTabs}) reached.", LogLevel.Info);
             CloseEditor();
             return;
         }
 
         // Monitor.Log($"Clicked {(_editingTabIndex >= 0 ? "Save edited hotkey" : "Create/OK")}. Pending values: name='{_draftName}', iconId={_draftIcon}, keybind='{_draftKeybind}'.", LogLevel.Info);
-        var previousCount = _config.Tabs.Count;
+        bool updating = _editingTabIndex >= 0 && _editingTabIndex < _config.Tabs.Count;
         if (_editingTabIndex >= 0 && _editingTabIndex < _config.Tabs.Count)
-            _config.Tabs[_editingTabIndex] = new HubTab { Name = _draftName, Icon = _draftIcon, Keybinds = _draftKeybind };
+            _config.Tabs[_editingTabIndex] = new HubTab { Name = _draftName, Description = _draftDescription, Icon = _draftIcon, Keybinds = _draftKeybind };
         else
-            _config.Tabs.Add(new HubTab { Name = _draftName, Icon = _draftIcon, Keybinds = _draftKeybind });
+            _config.Tabs.Add(new HubTab { Name = _draftName, Description = _draftDescription, Icon = _draftIcon, Keybinds = _draftKeybind });
+        if (!updating)
+            _selectedHotkeyConfigIndex = _config.Tabs.Count - 1;
         _config.Normalize();
         // Monitor.Log($"Hotkey save: before={previousCount}, after={_config.Tabs.Count}, capacity={MaxCustomTabs}.", LogLevel.Info);
         SaveConfig();
-        RegisterGenericModConfigMenu();
+        LogDebug($"User action: {(updating ? "updated" : "created")} hotkey '{_draftName}', icon={_draftIcon}, keybind='{_draftKeybind}', descriptionPresent={!string.IsNullOrWhiteSpace(_draftDescription)}.");
+        ShowHotkeyEvent($"Hotkey {(updating ? "updated" : "created")}: {_draftName} ({_draftKeybind})");
+        if (!updating && _config.Tabs.Count > GridCapacity)
+            Game1.addHUDMessage(new HUDMessage("Saved. Increase grid rows or columns to display this hotkey in the inventory."));
+        if (!_editorOpenedFromConfig)
+            RegisterGenericModConfigMenu();
         CloseEditor();
     }
 
@@ -195,17 +243,22 @@ public sealed partial class ModEntry
 
         Game1.activeClickableMenu = menu.Editor;
         menu.Editor.FocusDeleteButton();
+        LogDebug($"User action: cancelled deleting hotkey '{_draftName}'.");
     }
 
     private void ConfirmDelete()
     {
         if (_editingTabIndex >= 0 && _editingTabIndex < _config.Tabs.Count)
         {
+            var deletedName = _config.Tabs[_editingTabIndex].Name;
             _config.Tabs.RemoveAt(_editingTabIndex);
+            _selectedHotkeyConfigIndex = Math.Clamp(_selectedHotkeyConfigIndex, 0, Math.Max(0, _config.Tabs.Count - 1));
             // var deletedName = _config.Tabs[_editingTabIndex].Name;
             // Monitor.Log($"Deleted hotkey [{_editingTabIndex}] '{deletedName}'.", LogLevel.Info);
             SaveConfig();
-            RegisterGenericModConfigMenu();
+            LogDebug($"User action: deleted hotkey '{deletedName}'.");
+            if (!_editorOpenedFromConfig)
+                RegisterGenericModConfigMenu();
         }
         CloseEditor(deleted: true);
     }
@@ -220,6 +273,7 @@ public sealed partial class ModEntry
             || _editorIconDiceBounds.Contains(point)
             || _editorKeybindHitBounds.Contains(point)
             || _editorNameHitBounds.Contains(point)
+            || _editorDescriptionHitBounds.Contains(point)
             || _editorCreateBounds.Contains(point)
             || _editorCancelBounds.Contains(point)
             || (_editingTabIndex >= 0 && _editorDeleteBounds.Contains(point));
@@ -231,9 +285,15 @@ public sealed partial class ModEntry
         if (_emojiCatalog.Count == 0)
             return;
         _draftIcon = (_draftIcon + delta + _emojiCatalog.Count) % _emojiCatalog.Count;
+        LogDebug($"User action: changed draft icon for '{_draftName}' to {_draftIcon}.");
     }
 
     private void OpenDraftKeybindEditor()
+    {
+        OpenKeybindOverlay(_draftKeybind, "Inventory hotkey", value => _draftKeybind = value);
+    }
+
+    private void OpenKeybindOverlay(KeybindList initialBindings, string title, Action<KeybindList> saveBindings)
     {
         _gmcmKeybindOverlayType ??= AppDomain.CurrentDomain.GetAssemblies()
             .Select(assembly => assembly.GetType("GenericModConfigMenu.Framework.Overlays.KeybindOverlay", throwOnError: false))
@@ -251,7 +311,8 @@ public sealed partial class ModEntry
                 LogLevel.Warn
             );
 
-            _capturingDraftKeybind = true;
+            if (Game1.activeClickableMenu is InventoryTabEditorMenu)
+                _capturingDraftKeybind = true;
             return;
         }
 
@@ -267,11 +328,11 @@ public sealed partial class ModEntry
         Action<Keybind[]> save = keybinds =>
         {
             var serialized = string.Join(", ", keybinds.Select(keybind => keybind.ToString()));
-            _draftKeybind = KeybindList.Parse(serialized);
+            saveBindings(KeybindList.Parse(serialized));
             // Monitor.Log($"GMCM keybind editor accepted selection. Raw='{serialized}', parsed='{_draftKeybind}', bound={_draftKeybind.IsBound}.", LogLevel.Info);
         };
-        Keybind[] initial = _draftKeybind.Keybinds.ToArray();
-        _gmcmKeybindOverlay = constructor.Invoke(new object?[] { initial, false, "Inventory hotkey", save });
+        Keybind[] initial = initialBindings.Keybinds.ToArray();
+        _gmcmKeybindOverlay = constructor.Invoke(new object?[] { initial, false, title, save });
         _gmcmFocusedButtonName = initial.Length > 0 ? "Remove 0" : "Add";
         _skipGmcmControllerAOnButtonsChanged = false;
         _capturingDraftKeybind = false;
@@ -294,7 +355,10 @@ public sealed partial class ModEntry
             // Monitor.Log($"Simulated key reached ButtonsChanged: {button}; active menu={activeMenu}; SMAPI state={Helper.Input.GetState(button)}.", LogLevel.Info);
         }
 
-        if (Game1.activeClickableMenu is not InventoryTabEditorMenu || _gmcmKeybindOverlay is null)
+        if (Game1.activeClickableMenu is not InventoryTabEditorMenu
+            && (Game1.activeClickableMenu is not IClickableMenu menu || !IsGmcmConfigMenu(menu)))
+            return;
+        if (_gmcmKeybindOverlay is null)
             return;
 
         if (_skipGmcmControllerAOnButtonsChanged)
@@ -317,6 +381,7 @@ public sealed partial class ModEntry
     private void OnCursorMoved(object? sender, CursorMovedEventArgs e)
     {
         Point cursor = new(Game1.getMouseX(), Game1.getMouseY());
+        UpdateChestDrag(cursor);
         if (_pendingControllerCursorPosition is Point snappedPosition && cursor == snappedPosition)
         {
             _pendingControllerCursorPosition = null;
@@ -425,6 +490,7 @@ public sealed partial class ModEntry
             new Vector2(_editorBounds.X + 32, _editorBounds.Y + 92), Color.SaddleBrown);
 
         DrawEditorName(b);
+        DrawEditorDescription(b);
         DrawEditorIcon(b);
 
         DrawEditorKeybind(b);
@@ -477,6 +543,20 @@ public sealed partial class ModEntry
             var caretY = _editorNameBounds.Center.Y - 14;
             b.Draw(Game1.staminaRect, new Rectangle(caretX, caretY, 3, 28), Color.SaddleBrown);
         }
+    }
+
+    private void DrawEditorDescription(SpriteBatch b)
+    {
+        b.DrawString(Game1.dialogueFont, "Description",
+            new Vector2(_editorBounds.X + 40, _editorDescriptionBounds.Center.Y - Game1.dialogueFont.LineSpacing / 2), Color.SaddleBrown);
+        IClickableMenu.drawTextureBox(b, _editorDescriptionBounds.X, _editorDescriptionBounds.Y,
+            _editorDescriptionBounds.Width, _editorDescriptionBounds.Height, Color.White);
+        bool empty = string.IsNullOrWhiteSpace(_draftDescription);
+        string value = empty ? "Click to add a description (optional)" : _draftDescription;
+        var fitted = FitText(value, Game1.smallFont, _editorDescriptionBounds.Width - 24);
+        b.DrawString(Game1.smallFont, fitted,
+            new Vector2(_editorDescriptionBounds.X + 18, _editorDescriptionBounds.Center.Y - Game1.smallFont.LineSpacing / 2),
+            empty ? Color.Gray : Color.SaddleBrown);
     }
 
     private void DrawEditorIcon(SpriteBatch b)
@@ -578,9 +658,29 @@ public sealed partial class ModEntry
     {
         if (font.MeasureString(text).X <= maxWidth)
             return text;
-        while (text.Length > 1 && font.MeasureString(text + "…").X > maxWidth)
-            text = text[..^1];
-        return text + "…";
+
+        const string ellipsis = "…";
+        if (font.MeasureString(ellipsis).X > maxWidth)
+            return "";
+
+        int low = 0;
+        int high = text.Length;
+        while (low < high)
+        {
+            int middle = low + (high - low + 1) / 2;
+            if (middle < text.Length && middle > 0
+                && char.IsHighSurrogate(text[middle - 1]) && char.IsLowSurrogate(text[middle]))
+                middle--;
+            if (font.MeasureString(text[..middle] + ellipsis).X <= maxWidth)
+                low = middle;
+            else
+                high = middle - 1;
+        }
+
+        if (low < text.Length && low > 0
+            && char.IsHighSurrogate(text[low - 1]) && char.IsLowSurrogate(text[low]))
+            low--;
+        return text[..low] + ellipsis;
     }
 
     private static void DrawDiceIcon(SpriteBatch b, Rectangle bounds)

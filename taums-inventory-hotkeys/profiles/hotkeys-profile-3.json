@@ -1,0 +1,31 @@
+{
+  "IsCreated": true,
+  "Columns": 10,
+  "Rows": 4,
+  "Tabs": [
+    {
+      "Name": "Pause vote",
+      "Description": "It's StardewTime",
+      "Icon": 42,
+      "Keybinds": "Pause"
+    },
+    {
+      "Name": "Freeze time",
+      "Description": "It's StardewTime",
+      "Icon": 42,
+      "Keybinds": "F2"
+    },
+    {
+      "Name": "Slow time",
+      "Description": "It's StardewTime",
+      "Icon": 42,
+      "Keybinds": "F4"
+    },
+    {
+      "Name": "Speed up time",
+      "Description": "It's StardewTime",
+      "Icon": 42,
+      "Keybinds": "F5"
+    }
+  ]
+}

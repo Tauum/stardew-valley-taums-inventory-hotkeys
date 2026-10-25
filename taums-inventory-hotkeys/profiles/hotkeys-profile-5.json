@@ -1,0 +1,55 @@
+{
+  "IsCreated": true,
+  "Columns": 10,
+  "Rows": 4,
+  "Tabs": [
+    {
+      "Name": "Toggle FPS mode",
+      "Description": "Ultra Smooth",
+      "Icon": 146,
+      "Keybinds": "NumPad3"
+    },
+    {
+      "Name": "Toggle performance overlay",
+      "Description": "Ultra Smooth",
+      "Icon": 143,
+      "Keybinds": "NumPad4"
+    },
+    {
+      "Name": "Save with MultiSave",
+      "Description": "MultiSave - Continued",
+      "Icon": 85,
+      "Keybinds": "F6"
+    },
+    {
+      "Name": "Hide Trees",
+      "Description": "UI Info Suite 2 Alternative",
+      "Icon": 68,
+      "Keybinds": "F7"
+    },
+    {
+      "Name": "Describe Guidance",
+      "Description": "World Navigator",
+      "Icon": 69,
+      "Keybinds": "NumPad5"
+    },
+    {
+      "Name": "Automate Overlay",
+      "Description": "Automate",
+      "Icon": 65,
+      "Keybinds": "U"
+    },
+    {
+      "Name": "Configure Adventure Bar",
+      "Description": "Sword & Sorcery",
+      "Icon": 89,
+      "Keybinds": "NumPad6"
+    },
+    {
+      "Name": "Toggle Adventure Bar",
+      "Description": "Sword & Sorcery",
+      "Icon": 124,
+      "Keybinds": "NumPad7"
+    }
+  ]
+}

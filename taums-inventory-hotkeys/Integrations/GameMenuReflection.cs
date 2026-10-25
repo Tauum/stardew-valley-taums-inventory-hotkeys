@@ -5,7 +5,7 @@ using System.Collections;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace Taums_menu_supreme;
+namespace Taums_inventory_hotkeys;
 
 public sealed partial class ModEntry
 {

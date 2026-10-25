@@ -4,11 +4,11 @@ using StardewModdingAPI.Utilities;
 using StardewValley;
 using StardewValley.Menus;
 
-namespace Taums_menu_supreme;
+namespace Taums_inventory_hotkeys;
 
 public sealed partial class ModEntry
 {
-    private void SimulateKeybind(KeybindList keybinds)
+    private bool SimulateKeybind(KeybindList keybinds)
     {
         // Use SMAPI's input simulator so the game and mods see this through the
         // same input state and keybind processing as a physical press.
@@ -16,14 +16,14 @@ public sealed partial class ModEntry
         if (binding is null)
         {
             // Monitor.Log($"Cannot press keybind: no alternatives in '{keybinds}'.", LogLevel.Warn);
-            return;
+            return false;
         }
 
         var buttons = binding.Buttons.Distinct().ToArray();
         if (buttons.Length == 0)
         {
             // Monitor.Log($"Cannot press keybind '{binding}': it contains no buttons.", LogLevel.Warn);
-            return;
+            return false;
         }
 
         foreach (var button in buttons)
@@ -33,11 +33,27 @@ public sealed partial class ModEntry
             Helper.Input.Press(button);
         }
 
-        // Monitor.Log($"Pressed _configured keybind through SMAPI input: binding='{binding}', buttons=[{string.Join(", ", buttons)}].", LogLevel.Info);
+        return true;
+
     }
 
     private void OnUpdateTicked(object? sender, UpdateTickedEventArgs e)
     {
+        if (_chestDragSourceIndex is not null
+            && (Game1.activeClickableMenu is not GameMenu dragMenu || !IsInventoryPage(dragMenu)
+                || !UseChestGrid || !_hotkeysVisible || _config.HideHotkeysGlobally))
+            ClearChestDrag();
+        else if (_chestDragSourceIndex is not null
+                 && !Helper.Input.IsSuppressed(SButton.MouseLeft)
+                 && !Helper.Input.IsDown(SButton.MouseLeft))
+            FinishChestDrag();
+        if (Game1.activeClickableMenu is not InventoryTabEditorMenu and not DeleteConfirmationMenu
+            and not HotkeyNamingMenu and not GameMenu)
+        {
+            _blurredMenuBackground?.Dispose();
+            _blurredMenuBackground = null;
+        }
+
         if (_simulatedButtonsAwaitingChangedEvent.Count > 0)
         {
             foreach (var button in _simulatedButtonsAwaitingChangedEvent.Keys.ToArray())
@@ -68,7 +84,11 @@ public sealed partial class ModEntry
             {
                 _pendingKeybind = null;
                 // Monitor.Log($"Dispatching delayed hotkey shortcut after inventory closed: '{action.Keybinds}'.", LogLevel.Info);
-                SimulateKeybind(action.Keybinds);
+                if (SimulateKeybind(action.Keybinds))
+                {
+                    Game1.playSound("coin");
+                    ShowHotkeyNotification($"Hotkey triggered: {action.Name} ({action.Keybinds})", action.Icon);
+                }
             }
         }
 
@@ -96,6 +116,17 @@ public sealed partial class ModEntry
     {
         _useControllerTooltipGlyphs = false;
         var cursor = e.Position.GetScaledScreenPixels().ToPoint();
+        if (Game1.activeClickableMenu is GameMenu gameMenu && IsInventoryPage(gameMenu)
+            && !_config.HideHotkeysGlobally && _hotkeysVisible && _config.EnableProfileButtons)
+        {
+            EnsureLayout(gameMenu);
+            if (_plusTabBounds.Contains(cursor))
+            {
+                SwitchProfile(e.Delta < 0 ? 1 : -1);
+                return;
+            }
+        }
+
         if (_confirmingDelete || Game1.activeClickableMenu is not InventoryTabEditorMenu || !_editorIconCarouselBounds.Contains(cursor))
             return;
 
@@ -106,7 +137,20 @@ public sealed partial class ModEntry
     {
         _useControllerTooltipGlyphs = IsControllerButton(e.Button);
 
+        if (_gmcmKeybindOverlay is not null && Game1.activeClickableMenu is IClickableMenu configMenu
+            && IsGmcmConfigMenu(configMenu))
+        {
+            HandleGmcmOverlayButton(e);
+            return;
+        }
+
+        if (HandleGmcmActionClick(e))
+            return;
+
         if (!Context.IsWorldReady)
+            return;
+
+        if (HandleGmcmConfigControllerButton(e))
             return;
 
         if (Game1.activeClickableMenu is DeleteConfirmationMenu deleteMenu)

@@ -1,0 +1,97 @@
+{
+  "IsCreated": true,
+  "Columns": 10,
+  "Rows": 4,
+  "Tabs": [
+    {
+      "Name": "Open World Navigator",
+      "Description": "World Navigator",
+      "Icon": 107,
+      "Keybinds": "End"
+    },
+    {
+      "Name": "Open Tinker Inventory",
+      "Description": "Trinket Tinker",
+      "Icon": 17,
+      "Keybinds": "RightAlt + OemPeriod"
+    },
+    {
+      "Name": "Open Calendar",
+      "Description": "UI Info Suite 2 Alternative",
+      "Icon": 99,
+      "Keybinds": "B"
+    },
+    {
+      "Name": "Open Quest Board",
+      "Description": "UI Info Suite 2 Alternative",
+      "Icon": 41,
+      "Keybinds": "H"
+    },
+    {
+      "Name": "Open Special Orders",
+      "Description": "UI Info Suite 2 Alternative",
+      "Icon": 41,
+      "Keybinds": "J"
+    },
+    {
+      "Name": "Open Qi's Special Orders",
+      "Description": "UI Info Suite 2 Alternative",
+      "Icon": 41,
+      "Keybinds": "LeftControl + Q"
+    },
+    {
+      "Name": "Toggle Machine Icons",
+      "Description": "UI Info Suite 2 Alternative",
+      "Icon": 10,
+      "Keybinds": "LeftControl + LeftShift + I"
+    },
+    {
+      "Name": "Open Market Board",
+      "Description": "The Living Valley",
+      "Icon": 41,
+      "Keybinds": "K"
+    },
+    {
+      "Name": "Open Newspaper",
+      "Description": "The Living Valley",
+      "Icon": 144,
+      "Keybinds": "OemOpenBrackets"
+    },
+    {
+      "Name": "Open Rumour Board",
+      "Description": "The Living Valley",
+      "Icon": 144,
+      "Keybinds": "OemCloseBrackets"
+    },
+    {
+      "Name": "Open Farmhand Board",
+      "Description": "The Living Valley",
+      "Icon": 68,
+      "Keybinds": "OemTilde"
+    },
+    {
+      "Name": "Toggle NPC Minimap",
+      "Description": "NPC Map Locations",
+      "Icon": 151,
+      "Keybinds": "OemPipe"
+    },
+    {
+      "Name": "Perfection Handbook",
+      "Description": "Perfection Handbook",
+      "Icon": 87,
+      "Keybinds": "Home"
+    },
+    {
+      "Name": "Toggle Reminders",
+      "Description": "Perfection Handbook",
+      "Icon": 132,
+      "Keybinds": "NumPad2"
+    },
+    {
+      "Name": "Hire Skilled Helpers",
+      "Description": "Hire Skilled Helpers",
+      "Icon": 136,
+      "Keybinds": "NumPad1"
+    }
+  ]
+}

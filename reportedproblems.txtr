@@ -1,0 +1,62 @@
+﻿
+yes it works with bigger backpack
+
+- refined settings menu
+- more keybinds
+- rebindable keybinds
+- global hide toggle
+- customisable grid row/column
+- added profiles, and profile switcher buttons
+- set controller glyphs
+- set custom x y positions
+
+- additional presentation option with dragable rearrange
+
+- blured background
+
+- investgated problems
+
+
+
+
+1. Im not able to add any of the hotkeys i want. I wanted to set up my chest anywhere as a hotkey but forget about that, im not able to add any of the tools or my horse whisperer too. Am i doing something wrong🤔
+
+2. He's a good mod, not sure if it's just me who can't click with the mouse—hope it gets fixed soon. - Left, right, and middle mouse buttons are unresponsive; controller functions normally.
+
+
+features to add listed
+
+1 allow rebind the keys <a>/<x>/<y> / mouse binds
+
+2 allow customising the grid via the mod settings menu
+
+4 add a hard hide / show via the mod settings
+
+5 add a hotkey so if you press select / keyboard equivelent on the add key, it will navigate to the mod configuration
+
+3 coime up with an idea for the foollowing
+Why do I need a keyboard to set them up? - Because I didn't think that far ahead, I will figure out an onscreen keyboard solution (or something even better long term) if you don't want to keep rebinding keys or use a keyboard on initial setup.
+(thhe even better being not even a keyboasrd key so you can technically add infinite keybinds and use those keybinds on other mods config files)
+- it would need to be done via the mod menu settings obviously but you could just have a dropdown on the keybind assigner maybe
+
+
+6 add dedicated buttons within inventory menu for zoom in / out, and allow further out than 75%
+
+7 - ignore for now - Detect overlapping keybinds from all mods list, show which mods own them, and help reassign them within the mod configuration menu
+
+8 Universal Command Palette	Ctrl+K to search, bind this to the hotkey menu and launch mod actions, menus, and commands
+
+9 - ignore for now - Independently resize modded menus, tooltips, and HUD elements
+
+10 - ignore for now - add another menu - which is activated by both right and left clicking the add menu or keybindable in mod settings
+it instead opens a new inventory window, and instead of displaying the hotkeys above the inventory, it is each individual item slot. - in mod settings you can differentiate between above inventory and new inventory window
+
+11. 
+11a. add some common templates which might be useful to people, eg timescale setup based on default config
+11b. uiinfo suite / chest anywhere, swim, etc....
+
+12. - ignore for now a recent button, which Back/forward navigation between recently opened menus if you press a forward/backwards button, or press r2 + l2 + l1 / r1
+
+13. - ignore for nwo likely a seperate mod - Notification Center	Consolidate mod notifications into a searchable, dismissible history
+
+14. - ignore for now - Tooltip Comparison	Hold a key to compare an item with another item in your inventory - which can then be bound to a hotkey
