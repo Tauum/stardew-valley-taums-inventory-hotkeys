@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <RootNamespace>Taums_menu_supreme</RootNamespace>
+        <Version>1.0.0</Version>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <GamePath Condition="'$(GamePath)' == ''">E:\Games\Steam\steamapps\common\Stardew Valley</GamePath>
+        <EnableModDeploy>false</EnableModDeploy>
+        <EnableModZip>false</EnableModZip>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Compile Remove="StardewMods-main\**\*" />
+      <EmbeddedResource Remove="StardewMods-main\**\*" />
+      <None Remove="StardewMods-main\**\*" />
+      <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.4.0" />
+      <None Update="manifest.json" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
+</Project>

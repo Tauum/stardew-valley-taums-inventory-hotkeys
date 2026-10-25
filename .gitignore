@@ -1,0 +1,8 @@
+/.idea/
+**/bin/
+**/obj/
+/artifacts/
+*.sln.DotSettings.user
+/taums-inventory-hotkeys/StardewMods-main/
+/taums-inventory-hotkeys/stardew-mod-hub-spec/
+/taums-inventory-hotkeys/Pasted markdown.md
