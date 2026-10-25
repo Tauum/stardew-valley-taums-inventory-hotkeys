@@ -92,19 +92,70 @@ public sealed partial class ModEntry
                 Helper.Input.Suppress(e.Button);
                 return true;
             }
-
+//
+            // var focusedNativeTab = TryGetNativeTabIndex(menu, focusedComponent, out _)
+            //     ? focusedComponent
+            //     : TryGetNativeTabIndex(menu, menu.currentlySnappedComponent, out _)
+            //         ? menu.currentlySnappedComponent
+            //         : null;
+            // if (_hotkeysVisible && vertical < 0 && focusedNativeTab is not null
+            //     && TryGetHotkeyNearestToTab(focusedNativeTab, out var hotkeyIndex))
+            // {
+            //     FocusHotkey(menu, hotkeyIndex);
+            //     Helper.Input.Suppress(e.Button);
+            //     return true;
+            // }
+            //
+            
+            
             var focusedNativeTab = TryGetNativeTabIndex(menu, focusedComponent, out _)
                 ? focusedComponent
                 : TryGetNativeTabIndex(menu, menu.currentlySnappedComponent, out _)
                     ? menu.currentlySnappedComponent
                     : null;
-            if (_hotkeysVisible && vertical < 0 && focusedNativeTab is not null
-                && TryGetHotkeyNearestToTab(focusedNativeTab, out var hotkeyIndex))
+
+            if (_hotkeysVisible && vertical < 0 && _customTabBounds.Count > 0)
             {
-                FocusHotkey(menu, hotkeyIndex);
-                Helper.Input.Suppress(e.Button);
-                return true;
+                if (focusedNativeTab is not null
+                    && TryGetHotkeyNearestToTab(focusedNativeTab, out var hotkeyIndex))
+                {
+                    FocusHotkey(menu, hotkeyIndex);
+                    Helper.Input.Suppress(e.Button);
+                    return true;
+                }
+
+                // Fallback: navigate from the top inventory row
+                // when neither focus reference is a native tab.
+                var currentFocus = focusedComponent ?? menu.currentlySnappedComponent;
+                if (currentFocus is not null)
+                {
+                    var firstRow = _customTabBounds.Take(Math.Min(10, _customTabBounds.Count));
+
+                    var nearest = firstRow
+                        .OrderBy(tab => Math.Abs(
+                            tab.bounds.Center.X - currentFocus.bounds.Center.X))
+                        .First();
+
+                    var nativeTabs = GetNativeTabComponents(menu) as System.Collections.IList;
+
+                    var nativeTabBottom = nativeTabs?
+                        .OfType<ClickableComponent>()
+                        .Where(tab => tab.visible)
+                        .Select(tab => tab.bounds.Bottom)
+                        .DefaultIfEmpty(int.MinValue)
+                        .Max() ?? int.MinValue;
+
+                    // Only intercept Up when focus is on or above
+                    // the native tab strip, not within the inventory grid.
+                    if (currentFocus.bounds.Center.Y <= nativeTabBottom)
+                    {
+                        FocusHotkey(menu, nearest.index);
+                        Helper.Input.Suppress(e.Button);
+                        return true;
+                    }
+                }
             }
+
 
             if (_hotkeysVisible && vertical > 0 && ReferenceEquals(focusedComponent, _controllerAddHotkeyComponent)
                 && _customTabBounds.Count > 0)

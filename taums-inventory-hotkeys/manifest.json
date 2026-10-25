@@ -3,7 +3,7 @@
     "Author":  "Taum",
     "Version":  "1.0.0",
     "Description":  "Add inventory tabs that trigger your configured keyboard or controller shortcuts.",
-    "UniqueID":  "Taum.MenuSupreme",
+    "UniqueID": "Taum.InventoryHotkeys",
     "EntryDll":  "taums-inventory-hotkeys.dll",
     "MinimumApiVersion":  "4.5.2",
     "Dependencies":  [
