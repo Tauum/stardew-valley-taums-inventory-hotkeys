@@ -9,6 +9,30 @@ namespace Taums_inventory_hotkeys;
 
 public sealed partial class ModEntry
 {
+    private ClickableComponent? GetInventoryControllerTarget(GameMenu menu)
+    {
+        var page = GetInventoryPage(menu);
+        var pageFocus = page?.currentlySnappedComponent;
+        var menuFocus = menu.currentlySnappedComponent;
+        var focused = pageFocus?.myID is ProfilePreviousSnapId or ProfileNextSnapId ? pageFocus
+            : menuFocus?.myID is ProfilePreviousSnapId or ProfileNextSnapId ? menuFocus
+            : pageFocus ?? menuFocus;
+
+        // Share the focused target between tooltips and input. Refresh before
+        // activation if navigation, a profile switch, or a new menu changed it.
+        if (!ReferenceEquals(_controllerTargetMenu, menu)
+            || !ReferenceEquals(_controllerTargetPage, page)
+            || _controllerTargetProfile != _config.ActiveProfile
+            || !ReferenceEquals(_controllerTooltipTarget, focused))
+        {
+            _controllerTargetMenu = menu;
+            _controllerTargetPage = page;
+            _controllerTargetProfile = _config.ActiveProfile;
+            _controllerTooltipTarget = focused;
+        }
+        return _controllerTooltipTarget;
+    }
+
     private static bool IsInventoryPage(GameMenu menu)
     {
         // GameMenu's first page is Inventory. Read the live selected tab so
@@ -65,8 +89,8 @@ public sealed partial class ModEntry
 
         var inventoryTab = GetNativeInventoryTab(menu);
         if (_plusTabBounds.IsEmpty && inventoryTab is not null)
-            _plusTabBounds = new Rectangle(inventoryTab.bounds.Left - inventoryTab.bounds.Width + 28,
-                inventoryTab.bounds.Y + 8, inventoryTab.bounds.Width, inventoryTab.bounds.Height);
+            _plusTabBounds = new Rectangle(inventoryTab.bounds.Left - inventoryTab.bounds.Width + 8,
+                inventoryTab.bounds.Y + 6, inventoryTab.bounds.Width, inventoryTab.bounds.Height);
         _controllerAddHotkeyComponent ??= new ClickableComponent(_plusTabBounds, "Add hotkey")
         {
             myID = AddHotkeySnapId,
@@ -296,22 +320,64 @@ public sealed partial class ModEntry
 
     private bool IsAddHotkeyHighlighted(GameMenu menu, bool mouseInput, Point cursor)
     {
-        var focused = GetInventoryPage(menu)?.currentlySnappedComponent;
-        if (_controllerAddHotkeyComponent is not null
-            && (ReferenceEquals(focused, _controllerAddHotkeyComponent) || focused?.myID == AddHotkeySnapId))
-            return true;
-
-        if (!mouseInput)
-            return false;
+        if (!mouseInput || _useControllerTooltipGlyphs)
+            return GetInventoryControllerTarget(menu)?.myID == AddHotkeySnapId;
         return _mouseHoverStateUpdated ? _mouseHoveringPlusTab : _plusTabBounds.Contains(cursor);
+    }
+
+    private void RestoreInventoryControllerCursor(GameMenu menu)
+    {
+        if (_pendingInventoryControllerResnapId is not int id)
+            return;
+        _pendingInventoryControllerResnapId = null;
+        if (!_useControllerTooltipGlyphs || GetInventoryPage(menu) is not { } page)
+            return;
+
+        var component = page.allClickableComponents?.FirstOrDefault(candidate => candidate.myID == id);
+        if (component is null)
+            return;
+
+        page.currentlySnappedComponent = component;
+        menu.currentlySnappedComponent = component;
+        SnapControllerCursor(page, SnapCursorMethod);
+    }
+
+    private static Point GetUiCursorPosition()
+    {
+        var previousUiMode = Game1.uiMode;
+        try
+        {
+            Game1.uiMode = true;
+            return new Point(Game1.getMouseX(), Game1.getMouseY());
+        }
+        finally
+        {
+            Game1.uiMode = previousUiMode;
+        }
     }
 
     private void SnapControllerCursor(IClickableMenu page, MethodInfo? snapCursor)
     {
-        _pendingControllerCursorPosition = page.currentlySnappedComponent?.bounds.Center;
+        _pendingControllerCursorPosition = null;
         _snappingControllerCursor = true;
-        try { snapCursor?.Invoke(page, null); }
-        finally { _snappingControllerCursor = false; }
+        var previousUiMode = Game1.uiMode;
+        try
+        {
+            // Input callbacks can run outside UI mode. Snap using the same UI
+            // scale as rendering, independently of the world's zoom level.
+            Game1.uiMode = true;
+            snapCursor?.Invoke(page, null);
+            // The game's snap point is offset inside the component, not its
+            // centre. Record the actual warp in physical pixels so the next
+            // cursor event is recognised across UI scales and rounding.
+            if (snapCursor is not null)
+                _pendingControllerCursorPosition = Microsoft.Xna.Framework.Input.Mouse.GetState().Position;
+        }
+        finally
+        {
+            Game1.uiMode = previousUiMode;
+            _snappingControllerCursor = false;
+        }
     }
 
     private void SetHotkeysVisible(bool visible)

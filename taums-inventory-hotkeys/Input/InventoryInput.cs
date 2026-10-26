@@ -120,14 +120,7 @@ public sealed partial class ModEntry
             return true;
         }
 
-        var inventoryPage = GetInventoryPage(menu);
-        var pageFocus = inventoryPage?.currentlySnappedComponent;
-        var menuFocus = menu.currentlySnappedComponent;
-        var pageFocusIsProfileButton = pageFocus?.myID is ProfilePreviousSnapId or ProfileNextSnapId;
-        var menuFocusIsProfileButton = menuFocus?.myID is ProfilePreviousSnapId or ProfileNextSnapId;
-        var focusedComponent = pageFocusIsProfileButton ? pageFocus
-            : menuFocusIsProfileButton ? menuFocus
-            : pageFocus ?? menuFocus;
+        var focusedComponent = GetInventoryControllerTarget(menu);
         if (_config.EnableProfileButtons && _hotkeysVisible
             && ReferenceEquals(focusedComponent, _controllerAddHotkeyComponent)
             && e.Button is SButton.LeftShoulder or SButton.RightShoulder)
@@ -141,10 +134,8 @@ public sealed partial class ModEntry
 
         if (_config.EnableProfileButtons && MatchesAction(_config.ActivateButton, e.Button))
         {
-            var previousFocused = focusedComponent?.myID == ProfilePreviousSnapId
-                || (_useControllerTooltipGlyphs && _profilePreviousBounds.Contains(cursor));
-            var nextFocused = focusedComponent?.myID == ProfileNextSnapId
-                || (_useControllerTooltipGlyphs && _profileNextBounds.Contains(cursor));
+            var previousFocused = focusedComponent?.myID == ProfilePreviousSnapId;
+            var nextFocused = focusedComponent?.myID == ProfileNextSnapId;
             if (previousFocused)
             {
                 SwitchProfile(-1);
@@ -159,9 +150,7 @@ public sealed partial class ModEntry
             }
         }
 
-        if ((_controllerAddHotkeyFocused
-             || (_controllerAddHotkeyComponent is not null
-                 && GetInventoryPage(menu)?.currentlySnappedComponent == _controllerAddHotkeyComponent))
+        if (focusedComponent?.myID == AddHotkeySnapId
             && MatchesAction(_config.ActivateButton, e.Button))
         {
             _controllerAddHotkeyFocused = false;
@@ -178,7 +167,7 @@ public sealed partial class ModEntry
         }
 
         if (_hotkeysVisible && MatchesAction(_config.ActivateButton, e.Button)
-                            && TryGetHotkeyComponentIndex(inventoryPage?.currentlySnappedComponent, out int activatedHotkeyIndex))
+                            && TryGetHotkeyComponentIndex(focusedComponent, out int activatedHotkeyIndex))
         {
             ActivateHotkey(activatedHotkeyIndex);
             Helper.Input.Suppress(e.Button);
@@ -186,7 +175,7 @@ public sealed partial class ModEntry
         }
 
         if (_hotkeysVisible && MatchesAction(_config.EditButton, e.Button)
-                            && TryGetHotkeyComponentIndex(inventoryPage?.currentlySnappedComponent, out int editedHotkeyIndex))
+                            && TryGetHotkeyComponentIndex(focusedComponent, out int editedHotkeyIndex))
         {
             OpenEditor(menu, editedHotkeyIndex);
             Helper.Input.Suppress(e.Button);

@@ -3,7 +3,7 @@
     <PropertyGroup>
         <TargetFramework>net6.0</TargetFramework>
         <RootNamespace>Taums_inventory_hotkeys</RootNamespace>
-        <Version>1.0.1</Version>
+        <Version>1.0.2</Version>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <GamePath Condition="'$(GamePath)' == ''">E:\Games\Steam\steamapps\common\Stardew Valley</GamePath>

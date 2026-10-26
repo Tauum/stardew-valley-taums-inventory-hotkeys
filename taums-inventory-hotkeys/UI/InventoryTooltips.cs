@@ -17,9 +17,19 @@ public sealed partial class ModEntry
         _mouseHoveredProfileButton = 0;
         if (_chestDragActive)
             return;
-        if (_controllerAddHotkeyFocused)
+        if (_useControllerTooltipGlyphs && Game1.activeClickableMenu is GameMenu gameMenu)
         {
-            DrawAddHotkeyTooltip(b);
+            var focused = GetInventoryControllerTarget(gameMenu);
+            if (focused?.myID == AddHotkeySnapId)
+                DrawAddHotkeyTooltip(b);
+            else if (_hotkeysVisible && _config.EnableProfileButtons
+                     && focused?.myID is ProfilePreviousSnapId or ProfileNextSnapId)
+                IClickableMenu.drawHoverText(b, $"Hotkey Profile ({GetProfilePositionText()})", Game1.smallFont);
+            else if (_hotkeysVisible && TryGetHotkeyComponentIndex(focused, out var focusedIndex))
+            {
+                var tab = _config.Tabs[focusedIndex];
+                DrawHotkeyTooltip(b, tab.Name, tab.Description);
+            }
             return;
         }
 
@@ -55,18 +65,6 @@ public sealed partial class ModEntry
             return;
         }
 
-        if (!_useControllerTooltipGlyphs || !_hotkeysVisible)
-            return;
-
-        if (Game1.activeClickableMenu is not GameMenu gameMenu)
-            return;
-        var focused = GetInventoryPage(gameMenu)?.currentlySnappedComponent;
-        if (focused is null || !TryGetHotkeyComponentIndex(focused, out var focusedIndex)
-            || focusedIndex < 0 || focusedIndex >= _config.Tabs.Count)
-            return;
-
-        var focusedTab = _config.Tabs[focusedIndex];
-        DrawHotkeyTooltip(b, focusedTab.Name, focusedTab.Description);
     }
 
     private static void DrawHotkeyTooltip(SpriteBatch b, string title, string? description)

@@ -10,7 +10,7 @@ public sealed partial class ModEntry
     private void AddHotkeyToSnapGraph(GameMenu menu, IReadOnlyList<Rectangle> nativeTabs)
     {
         var inventoryPage = GetInventoryPage(menu);
-        if (nativeTabs.Count == 0 || inventoryPage?.allClickableComponents is null)
+        if (inventoryPage?.allClickableComponents is null)
             return;
 
         // GameMenu adds the native tab components to every page's clickable
@@ -18,7 +18,8 @@ public sealed partial class ModEntry
         var inventoryTab = GetNativeInventoryTab(menu);
         inventoryTab ??= inventoryPage.allClickableComponents
             .FirstOrDefault(component => component.name.Equals("inventory", StringComparison.OrdinalIgnoreCase));
-        inventoryTab ??= FindNativeTabComponent(menu, nativeTabs[0]);
+        if (inventoryTab is null && nativeTabs.Count > 0)
+            inventoryTab = FindNativeTabComponent(menu, nativeTabs[0]);
         if (inventoryTab is null)
             return;
 

@@ -94,7 +94,7 @@ public sealed partial class ModEntry
     {
         foreach (var value in values)
         {
-            if (value is not ClickableTextureComponent component || !component.visible)
+            if (value is not ClickableComponent component || !component.visible)
                 continue;
             var bounds = component.bounds;
             if (Math.Abs(bounds.Y - tabY) > 4 || bounds.Width < 48 || bounds.Width > 80)

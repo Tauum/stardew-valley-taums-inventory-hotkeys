@@ -41,6 +41,7 @@ public sealed partial class ModEntry
         }
         EnsureLayout(gameMenu);
         AddHotkeyToSnapGraph(gameMenu, _layoutNativeTabs);
+        RestoreInventoryControllerCursor(gameMenu);
         if (_pendingEditorReturnFocus is int returnFocus)
         {
             _pendingEditorReturnFocus = null;
@@ -49,8 +50,8 @@ public sealed partial class ModEntry
             else
                 FocusHotkey(gameMenu, returnFocus);
         }
-        _controllerAddHotkeyFocused = _controllerAddHotkeyComponent is not null
-            && GetInventoryPage(gameMenu)?.currentlySnappedComponent == _controllerAddHotkeyComponent;
+        _controllerAddHotkeyFocused = _useControllerTooltipGlyphs
+            && GetInventoryControllerTarget(gameMenu)?.myID == AddHotkeySnapId;
         if (_hotkeysVisible)
             DrawCustomTabs(e.SpriteBatch);
         RedrawNativeTabs(e.SpriteBatch, gameMenu);

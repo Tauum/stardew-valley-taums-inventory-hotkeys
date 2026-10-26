@@ -380,15 +380,25 @@ public sealed partial class ModEntry
 
     private void OnCursorMoved(object? sender, CursorMovedEventArgs e)
     {
-        Point cursor = new(Game1.getMouseX(), Game1.getMouseY());
+        var cursor = GetUiCursorPosition();
         UpdateChestDrag(cursor);
-        if (_pendingControllerCursorPosition is Point snappedPosition && cursor == snappedPosition)
+        if (_pendingControllerCursorPosition is Point snappedPosition
+            && Microsoft.Xna.Framework.Input.Mouse.GetState().Position == snappedPosition)
         {
             _pendingControllerCursorPosition = null;
             return;
         }
         _pendingControllerCursorPosition = null;
         if (_snappingControllerCursor)
+            return;
+        // A resize can change scaled cursor coordinates before the overlay
+        // rebuilds. Keep controller focus until it can snap to the new bounds.
+        if (_useControllerTooltipGlyphs && Game1.activeClickableMenu is GameMenu menu
+            && ReferenceEquals(_layoutMenu, menu)
+            && (_layoutViewport != new Rectangle(Game1.uiViewport.X, Game1.uiViewport.Y,
+                    Game1.uiViewport.Width, Game1.uiViewport.Height)
+                || _layoutMenuBounds != new Rectangle(menu.xPositionOnScreen, menu.yPositionOnScreen,
+                    menu.width, menu.height)))
             return;
         _useControllerTooltipGlyphs = false;
     }

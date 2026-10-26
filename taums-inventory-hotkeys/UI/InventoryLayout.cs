@@ -18,7 +18,12 @@ public sealed partial class ModEntry
             && _layoutHotkeyCount == _config.Tabs.Count && _layoutHotkeysVisible == _hotkeysVisible)
             return;
 
+        var focused = _useControllerTooltipGlyphs ? GetInventoryControllerTarget(menu) : null;
+        var focusedId = focused?.myID;
+        var preserveFocus = focusedId is AddHotkeySnapId or ProfilePreviousSnapId or ProfileNextSnapId
+            || TryGetHotkeyComponentIndex(focused, out _);
         RepositionTabs(menu);
+        _pendingInventoryControllerResnapId = preserveFocus ? focusedId : null;
         _layoutMenu = menu;
         _layoutPage = page;
         _layoutMenuBounds = menuBounds;
@@ -51,8 +56,10 @@ public sealed partial class ModEntry
         int[] inventoryColumnAnchors = GetInventoryColumnAnchors(menu);
         int[] columnAnchors = inventoryColumnAnchors.Length >= _config.Columns ? inventoryColumnAnchors : nativeColumnAnchors;
         var columnSpacing = GetColumnSpacing(columnAnchors, rowWidth);
+        // Keep the original Create/profile placement now that native tabs
+        // are detected reliably instead of using the fallback coordinates.
         _plusTabBounds = leftmostNativeTab is Rectangle nativeTab
-            ? new Rectangle(nativeTab.Left - rowWidth + 28, nativeTab.Y + 8, rowWidth, nativeTab.Height)
+            ? new Rectangle(nativeTab.Left - rowWidth + 8, nativeTab.Y + 6, rowWidth, nativeTab.Height)
             : new Rectangle(nativeLeft - rowWidth + 24, tabY + 6, rowWidth, rowWidth);
         const int profileButtonSize = 48;
         const int profileButtonGap = 4;
