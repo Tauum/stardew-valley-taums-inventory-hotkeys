@@ -41,6 +41,10 @@ public sealed partial class ModEntry
     private bool _snappingControllerCursor;
     private Point? _pendingControllerCursorPosition;
     private bool _useControllerTooltipGlyphs;
+    private bool _mouseHoverStateUpdated;
+    private bool _mouseHoveringPlusTab;
+    private int? _mouseHoveredHotkeyIndex;
+    private int _mouseHoveredProfileButton;
     private GameMenu? _snapGraphMenu;
     private IClickableMenu? _snapGraphInventoryPage;
     private ClickableComponent? _snapGraphInventoryTab;

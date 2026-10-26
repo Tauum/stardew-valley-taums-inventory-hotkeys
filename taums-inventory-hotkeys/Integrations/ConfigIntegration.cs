@@ -90,11 +90,11 @@ public sealed partial class ModEntry
         _gmcmApi.AddNumberOption(ModManifest, () => _config.ChestGridOffsetX,
             value => { _config.ChestGridOffsetX = value; _layoutDirty = true; },
             () => "Chest grid X offset", () => "Move the chest-style hotkey grid left or right from its centered position.",
-            min: -500, max: 500, interval: 8);
+            min: -4000, max: 4000, interval: 8);
         _gmcmApi.AddNumberOption(ModManifest, () => _config.ChestGridOffsetY,
             value => { _config.ChestGridOffsetY = value; _layoutDirty = true; },
             () => "Chest grid Y offset", () => "Move the chest-style hotkey grid up or down from its default position.",
-            min: -500, max: 500, interval: 8);
+            min: -4000, max: 4000, interval: 8);
         _gmcmApi.AddSectionTitle(ModManifest, () => "Inventory controls");
         AddCombinedControl("Activate / Add", () => _config.ActivateButton, value => _config.ActivateButton = value,
             () => _config.ActivateMouse, value => _config.ActivateMouse = value);

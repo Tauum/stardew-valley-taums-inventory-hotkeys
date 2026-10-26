@@ -1,3 +1,4 @@
+using Microsoft.Xna.Framework;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
@@ -8,6 +9,39 @@ namespace Taums_inventory_hotkeys;
 
 public sealed partial class ModEntry
 {
+    private static Point GetCursorPoint(ButtonPressedEventArgs e, Rectangle targetBounds)
+    {
+        var scaledPoint = e.Cursor.GetScaledScreenPixels().ToPoint();
+        return targetBounds.Contains(scaledPoint)
+            ? scaledPoint
+            : new Point(Game1.getMouseX(), Game1.getMouseY());
+    }
+
+    private static bool CursorHits(ButtonPressedEventArgs e, Rectangle bounds)
+    {
+        var scaledPoint = e.Cursor.GetScaledScreenPixels().ToPoint();
+        return bounds.Contains(scaledPoint) || bounds.Contains(Game1.getMouseX(), Game1.getMouseY());
+    }
+
+    private bool MouseHoveringProfileButton(ButtonPressedEventArgs e, Rectangle bounds, int direction)
+    {
+        if (_mouseHoverStateUpdated)
+            return _mouseHoveredProfileButton == direction;
+        return CursorHits(e, bounds);
+    }
+
+    private bool MouseHoveringPlusTab(ButtonPressedEventArgs e)
+    {
+        return _mouseHoverStateUpdated ? _mouseHoveringPlusTab : CursorHits(e, _plusTabBounds);
+    }
+
+    private bool MouseHoveringHotkey(ButtonPressedEventArgs e, int index, Rectangle bounds)
+    {
+        return _mouseHoverStateUpdated
+            ? _mouseHoveredHotkeyIndex == index
+            : CursorHits(e, bounds);
+    }
+
     private bool MatchesAction(StardewModdingAPI.Utilities.KeybindList? bindings, SButton pressed)
     {
         return bindings?.Keybinds.Any(binding => binding.Buttons.Contains(pressed)
@@ -40,10 +74,10 @@ public sealed partial class ModEntry
             if (_config.EnableProfileButtons && e.Button == SButton.MouseLeft)
             {
                 EnsureLayout(menu);
-                var point = e.Cursor.GetScaledScreenPixels().ToPoint();
-                if (_profilePreviousBounds.Contains(point) || _profileNextBounds.Contains(point))
+                if (MouseHoveringProfileButton(e, _profilePreviousBounds, -1)
+                    || MouseHoveringProfileButton(e, _profileNextBounds, 1))
                 {
-                    SwitchProfile(_profilePreviousBounds.Contains(point) ? -1 : 1);
+                    SwitchProfile(MouseHoveringProfileButton(e, _profilePreviousBounds, -1) ? -1 : 1);
                     Helper.Input.Suppress(e.Button);
                     return;
                 }
@@ -61,7 +95,8 @@ public sealed partial class ModEntry
 
     private bool HandleInventoryMenuButton(ButtonPressedEventArgs e, GameMenu menu)
     {
-        if (MatchesAction(_config.OpenSettings, e.Button) && IsAddHotkeyHighlighted(menu, mouseInput: true))
+        var cursor = GetCursorPoint(e, _plusTabBounds);
+        if (MatchesAction(_config.OpenSettings, e.Button) && IsAddHotkeyHighlighted(menu, mouseInput: true, cursor))
         {
             Helper.Input.Suppress(e.Button);
             if (_gmcmApi is null)
@@ -78,7 +113,7 @@ public sealed partial class ModEntry
         }
 
         if ((MatchesAction(_config.ToggleButton, e.Button) || MatchesAction(_config.ToggleMouse, e.Button))
-            && IsAddHotkeyHighlighted(menu, e.Button.ToString().StartsWith("Mouse", StringComparison.Ordinal)))
+            && IsAddHotkeyHighlighted(menu, e.Button.ToString().StartsWith("Mouse", StringComparison.Ordinal), cursor))
         {
             SetHotkeysVisible(!_hotkeysVisible);
             Helper.Input.Suppress(e.Button);
@@ -86,18 +121,37 @@ public sealed partial class ModEntry
         }
 
         var inventoryPage = GetInventoryPage(menu);
-        var focusedComponent = inventoryPage?.currentlySnappedComponent;
+        var pageFocus = inventoryPage?.currentlySnappedComponent;
+        var menuFocus = menu.currentlySnappedComponent;
+        var pageFocusIsProfileButton = pageFocus?.myID is ProfilePreviousSnapId or ProfileNextSnapId;
+        var menuFocusIsProfileButton = menuFocus?.myID is ProfilePreviousSnapId or ProfileNextSnapId;
+        var focusedComponent = pageFocusIsProfileButton ? pageFocus
+            : menuFocusIsProfileButton ? menuFocus
+            : pageFocus ?? menuFocus;
+        if (_config.EnableProfileButtons && _hotkeysVisible
+            && ReferenceEquals(focusedComponent, _controllerAddHotkeyComponent)
+            && e.Button is SButton.LeftShoulder or SButton.RightShoulder)
+        {
+            SwitchProfile(e.Button == SButton.LeftShoulder ? -1 : 1);
+            Helper.Input.Suppress(e.Button);
+            return true;
+        }
+
         if (TryHandleInventoryNavigation(e, menu, focusedComponent)) return true;
 
         if (_config.EnableProfileButtons && MatchesAction(_config.ActivateButton, e.Button))
         {
-            if (ReferenceEquals(focusedComponent, _controllerProfilePreviousComponent))
+            var previousFocused = focusedComponent?.myID == ProfilePreviousSnapId
+                || (_useControllerTooltipGlyphs && _profilePreviousBounds.Contains(cursor));
+            var nextFocused = focusedComponent?.myID == ProfileNextSnapId
+                || (_useControllerTooltipGlyphs && _profileNextBounds.Contains(cursor));
+            if (previousFocused)
             {
                 SwitchProfile(-1);
                 Helper.Input.Suppress(e.Button);
                 return true;
             }
-            if (ReferenceEquals(focusedComponent, _controllerProfileNextComponent))
+            if (nextFocused)
             {
                 SwitchProfile(1);
                 Helper.Input.Suppress(e.Button);
@@ -172,6 +226,14 @@ public sealed partial class ModEntry
             }
             if (isLeft || isRight)
             {
+                // Moving right from Next wraps around to Previous.
+                if (ReferenceEquals(focusedComponent, _controllerProfileNextComponent) && isRight)
+                {
+                    FocusProfileSwitcher(menu, next: false);
+                    Helper.Input.Suppress(e.Button);
+                    return true;
+                }
+
                 // The two profile buttons are a horizontal pair. Always allow
                 // left/right to move directly between them before leaving the row.
                 var nextIsRight = ReferenceEquals(focusedComponent, _controllerProfilePreviousComponent);
@@ -342,10 +404,7 @@ public sealed partial class ModEntry
     private void HandleInventoryPointerButton(ButtonPressedEventArgs e, GameMenu menu)
     {
         _controllerAddHotkeyFocused = false;
-        var cursor = e.Cursor.GetScaledScreenPixels().ToPoint();
-        var x = cursor.X;
-        var y = cursor.Y;
-        if (MatchesAction(_config.ActivateMouse, e.Button) && _plusTabBounds.Contains(x, y))
+        if (MatchesAction(_config.ActivateMouse, e.Button) && MouseHoveringPlusTab(e))
         {
             if (_config.Tabs.Count >= MaxCustomTabs)
             {
@@ -364,7 +423,7 @@ public sealed partial class ModEntry
 
         foreach (var tab in _customTabBounds)
         {
-            if (!tab.bounds.Contains(x, y)) continue;
+            if (!MouseHoveringHotkey(e, tab.index, tab.bounds)) continue;
             if (MatchesAction(_config.EditMouse, e.Button))
             {
                 OpenEditor(menu, tab.index);

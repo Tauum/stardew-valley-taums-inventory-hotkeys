@@ -11,7 +11,7 @@ public sealed partial class ModEntry : Mod
     {
         _config = helper.ReadConfig<HubConfig>();
         _config.Normalize();
-        LoadActiveProfile(migrateLegacy: true);
+        LoadActiveProfile();
         _useControllerTooltipGlyphs = Game1.options.gamepadControls;
         Monitor.Log($"Taum's Inventory Hotkeys initialized. Game {Game1.version}; SMAPI {Constants.ApiVersion}.", LogLevel.Info);
         Monitor.Log($"Runtime assembly: '{GetType().Assembly.Location}'. Custom hotkeys supported by this build: 40.", LogLevel.Info);
@@ -22,6 +22,7 @@ public sealed partial class ModEntry : Mod
         helper.Events.Input.CursorMoved += OnCursorMoved;
         helper.Events.Input.MouseWheelScrolled += OnMouseWheelScrolled;
         helper.Events.Display.RenderedActiveMenu += OnRenderedActiveMenu;
+        helper.Events.Display.RenderedActiveMenu += OnRenderedActiveMenuTooltip;
         helper.Events.Display.RenderedHud += OnRenderedHud;
         helper.Events.Display.RenderingActiveMenu += OnRenderingActiveMenu;
         helper.Events.Display.MenuChanged += OnMenuChangedForBlur;

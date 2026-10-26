@@ -1,3 +1,4 @@
+using Microsoft.Xna.Framework;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewModdingAPI.Utilities;
@@ -115,7 +116,7 @@ public sealed partial class ModEntry
     private void OnMouseWheelScrolled(object? sender, MouseWheelScrolledEventArgs e)
     {
         _useControllerTooltipGlyphs = false;
-        var cursor = e.Position.GetScaledScreenPixels().ToPoint();
+        var cursor = new Point(Game1.getMouseX(), Game1.getMouseY());
         if (Game1.activeClickableMenu is GameMenu gameMenu && IsInventoryPage(gameMenu)
             && !_config.HideHotkeysGlobally && _hotkeysVisible && _config.EnableProfileButtons)
         {

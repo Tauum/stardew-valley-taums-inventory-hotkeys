@@ -294,14 +294,16 @@ public sealed partial class ModEntry
             LogDebug("User action: focused last inventory tab.");
     }
 
-    private bool IsAddHotkeyHighlighted(GameMenu menu, bool mouseInput)
+    private bool IsAddHotkeyHighlighted(GameMenu menu, bool mouseInput, Point cursor)
     {
         var focused = GetInventoryPage(menu)?.currentlySnappedComponent;
         if (_controllerAddHotkeyComponent is not null
             && (ReferenceEquals(focused, _controllerAddHotkeyComponent) || focused?.myID == AddHotkeySnapId))
             return true;
 
-        return mouseInput && _plusTabBounds.Contains(Game1.getMouseX(), Game1.getMouseY());
+        if (!mouseInput)
+            return false;
+        return _mouseHoverStateUpdated ? _mouseHoveringPlusTab : _plusTabBounds.Contains(cursor);
     }
 
     private void SnapControllerCursor(IClickableMenu page, MethodInfo? snapCursor)

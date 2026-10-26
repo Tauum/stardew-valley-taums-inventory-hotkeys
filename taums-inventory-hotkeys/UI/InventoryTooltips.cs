@@ -11,6 +11,10 @@ public sealed partial class ModEntry
 {
     private void DrawTabTooltip(SpriteBatch b)
     {
+        _mouseHoverStateUpdated = true;
+        _mouseHoveringPlusTab = false;
+        _mouseHoveredHotkeyIndex = null;
+        _mouseHoveredProfileButton = 0;
         if (_chestDragActive)
             return;
         if (_controllerAddHotkeyFocused)
@@ -21,13 +25,21 @@ public sealed partial class ModEntry
 
         var x = Game1.getMouseX();
         var y = Game1.getMouseY();
-        if (_config.EnableProfileButtons && (_profilePreviousBounds.Contains(x, y) || _profileNextBounds.Contains(x, y)))
+        if (_config.EnableProfileButtons && _profilePreviousBounds.Contains(x, y))
         {
+            _mouseHoveredProfileButton = -1;
+            IClickableMenu.drawHoverText(b, $"Hotkey Profile ({GetProfilePositionText()})", Game1.smallFont);
+            return;
+        }
+        if (_config.EnableProfileButtons && _profileNextBounds.Contains(x, y))
+        {
+            _mouseHoveredProfileButton = 1;
             IClickableMenu.drawHoverText(b, $"Hotkey Profile ({GetProfilePositionText()})", Game1.smallFont);
             return;
         }
         if (_plusTabBounds.Contains(x, y))
         {
+            _mouseHoveringPlusTab = true;
             DrawAddHotkeyTooltip(b);
             return;
         }
@@ -37,80 +49,59 @@ public sealed partial class ModEntry
         foreach (var entry in _customTabBounds)
         {
             if (!entry.bounds.Contains(x, y)) continue;
+            _mouseHoveredHotkeyIndex = entry.index;
             var tab = _config.Tabs[entry.index];
-            DrawHotkeyTooltip(b, entry.bounds, tab.Name, tab.Description);
+            DrawHotkeyTooltip(b, tab.Name, tab.Description);
             return;
         }
+
+        if (!_useControllerTooltipGlyphs || !_hotkeysVisible)
+            return;
+
+        if (Game1.activeClickableMenu is not GameMenu gameMenu)
+            return;
+        var focused = GetInventoryPage(gameMenu)?.currentlySnappedComponent;
+        if (focused is null || !TryGetHotkeyComponentIndex(focused, out var focusedIndex)
+            || focusedIndex < 0 || focusedIndex >= _config.Tabs.Count)
+            return;
+
+        var focusedTab = _config.Tabs[focusedIndex];
+        DrawHotkeyTooltip(b, focusedTab.Name, focusedTab.Description);
     }
 
-    private static void DrawHotkeyTooltip(SpriteBatch b, Rectangle anchor, string title, string? description)
+    private static void DrawHotkeyTooltip(SpriteBatch b, string title, string? description)
     {
-        const int padding = 16;
-        const int maxTextWidth = 320;
-        const int gap = 6;
-        var viewport = Game1.uiViewport;
-        var titleText = Game1.parseText(title, Game1.dialogueFont, maxTextWidth);
-        var descriptionText = string.IsNullOrWhiteSpace(description)
-            ? ""
-            : Game1.parseText(description, Game1.smallFont, maxTextWidth);
-        var titleSize = Game1.dialogueFont.MeasureString(titleText);
-        var descriptionSize = descriptionText.Length == 0
-            ? Vector2.Zero
-            : Game1.smallFont.MeasureString(descriptionText);
-        var width = Math.Min(viewport.Width - 16,
-            (int)Math.Ceiling(Math.Max(titleSize.X, descriptionSize.X)) + padding * 2);
-        var height = padding * 2 + (int)Math.Ceiling(titleSize.Y)
-            + (descriptionText.Length == 0 ? 0 : gap + (int)Math.Ceiling(descriptionSize.Y));
-        var x = Math.Clamp(anchor.Center.X - width / 2, viewport.X + 8,
-            viewport.X + viewport.Width - width - 8);
-        var y = Math.Max(viewport.Y + 8, anchor.Top - height - 8);
-
-        IClickableMenu.drawTextureBox(b, x, y, width, height, Color.White);
-        b.DrawString(Game1.dialogueFont, titleText, new Vector2(x + padding, y + padding), Game1.textColor);
-        if (descriptionText.Length > 0)
-            b.DrawString(Game1.smallFont, descriptionText,
-                new Vector2(x + padding, y + padding + titleSize.Y + gap), Game1.textColor);
+        var text = string.IsNullOrWhiteSpace(description) ? title : $"{title}\n{description}";
+        IClickableMenu.drawHoverText(b, text, Game1.smallFont);
     }
 
     private void DrawAddHotkeyTooltip(SpriteBatch b)
     {
         (string Label, KeybindList?[] Bindings)[] lines =
         {
-            ("Create / Activate:", new[] { _config.ActivateButton, _config.ActivateMouse }),
-            ("Edit hotkey:", new[] { _config.EditButton, _config.EditMouse }),
-            ($"{(_hotkeysVisible ? "Hide" : "Show")} hotkeys:", new[] { _config.ToggleButton, _config.ToggleMouse }),
-            ("Mod settings:", new[] { _config.OpenSettings })
+            ("Create:", new[] { _config.ActivateButton, _config.ActivateMouse }),
+            ("Edit:", new[] { _config.EditButton, _config.EditMouse }),
+            ($"{(_hotkeysVisible ? "Hide" : "Show")}:", new[] { _config.ToggleButton, _config.ToggleMouse })
         };
-        const int padding = 12;
-        const int lineGap = 4;
-        var lineHeight = Game1.smallFont.LineSpacing;
-        var labelWidth = lines.Max(line => Game1.smallFont.MeasureString(line.Label).X);
-        var bindingsWidth = lines.Max(line => MeasureBindings(line.Bindings));
-        var boxWidth = (int)Math.Ceiling(padding * 2 + labelWidth + 10 + bindingsWidth);
-        boxWidth = Math.Min(boxWidth, Game1.uiViewport.Width - 16);
-        var boxHeight = padding * 2 + lineHeight * (lines.Length + 1) + lineGap * lines.Length;
+        var showProfileControls = _config.EnableProfileButtons;
+        var tooltipLines = new List<string> { "Add hotkey" };
+        tooltipLines.AddRange(lines.Select(line =>
+            $"{line.Label} {string.Join(" / ", FormatBindings(line.Bindings))}"));
+        if (showProfileControls)
+            tooltipLines.Add("Profile L1  R1 / Scroll");
+        tooltipLines.Add($"Settings: {string.Join(" / ", FormatBindings(new[] { _config.OpenSettings }))}");
+        IClickableMenu.drawHoverText(b, string.Join("\n", tooltipLines), Game1.smallFont);
+    }
 
-        var x = Game1.getMouseX() + 16;
-        var y = Game1.getMouseY() + 16;
-        Rectangle viewport = new(0, 0, Game1.uiViewport.Width, Game1.uiViewport.Height);
-        if (x + boxWidth > viewport.Right - 8)
-            x = Game1.getMouseX() - boxWidth - 16;
-        if (y + boxHeight > viewport.Bottom - 8)
-            y = Game1.getMouseY() - boxHeight - 16;
-        x = Math.Clamp(x, viewport.Left + 8, viewport.Right - boxWidth - 8);
-        y = Math.Clamp(y, viewport.Top + 8, viewport.Bottom - boxHeight - 8);
+    private IEnumerable<string> FormatBindings(IEnumerable<KeybindList?> bindings)
+    {
+        var alternatives = bindings.Where(binding => binding?.IsBound == true)
+            .SelectMany(binding => binding!.Keybinds).DistinctBy(binding => binding.ToString()).ToArray();
+        if (alternatives.Length == 0)
+            return new[] { "Unbound" };
 
-        IClickableMenu.drawTextureBox(b, x, y, boxWidth, boxHeight, Color.White);
-        b.DrawString(Game1.smallFont, "Add hotkey", new Vector2(x + padding, y + padding), Game1.textColor);
-        var labelX = x + padding;
-        var bindingsX = labelX + (int)Math.Ceiling(labelWidth) + 10;
-        var firstY = y + padding + lineHeight + lineGap;
-        for (int i = 0; i < lines.Length; i++)
-        {
-            var lineY = firstY + i * (lineHeight + lineGap);
-            b.DrawString(Game1.smallFont, lines[i].Label, new Vector2(labelX, lineY), Game1.textColor);
-            DrawBindings(b, lines[i].Bindings, bindingsX, lineY);
-        }
+        return alternatives.Select(alternative => string.Join(" + ", alternative.Buttons.Select(button =>
+            IsFaceButton(button) ? GetControllerButtonDisplay(button) : FormatButton(button))));
     }
 
     private float MeasureBindings(IEnumerable<KeybindList?> bindings)
@@ -181,6 +172,7 @@ public sealed partial class ModEntry
 
     private string FormatButton(SButton button) => button.ToString() switch
     {
+        "LeftControl" or "RightControl" => "Ctrl",
         "MouseLeft" => "Left click",
         "MouseRight" => "Right click",
         "MouseMiddle" => "Middle click",

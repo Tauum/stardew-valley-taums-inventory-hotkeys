@@ -14,10 +14,13 @@ public sealed partial class ModEntry
             return false;
 
         EnsureLayout(menu);
-        var point = e.Cursor.GetScaledScreenPixels().ToPoint();
+        var point = new Point(Game1.getMouseX(), Game1.getMouseY());
         foreach (var (bounds, index) in _customTabBounds)
         {
-            if (!bounds.Contains(point))
+            var hovered = _mouseHoverStateUpdated
+                ? _mouseHoveredHotkeyIndex == index
+                : CursorHits(e, bounds);
+            if (!hovered)
                 continue;
 
             _chestDragSourceIndex = index;
@@ -76,7 +79,6 @@ public sealed partial class ModEntry
         if (_chestDragSourceIndex is not int source)
             return;
 
-        UpdateChestDrag(new Point(Game1.getMouseX(), Game1.getMouseY()));
         var wasDragged = _chestDragActive;
         var target = _chestDragTargetIndex;
         ClearChestDrag();

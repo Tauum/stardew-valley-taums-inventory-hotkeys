@@ -56,10 +56,23 @@ public sealed partial class ModEntry
         RedrawNativeTabs(e.SpriteBatch, gameMenu);
         DrawPlusTab(e.SpriteBatch);
         DrawProfileSwitcher(e.SpriteBatch);
-        DrawTabTooltip(e.SpriteBatch);
         DrawHotkeyNotification(e.SpriteBatch);
         DrawChestDragFeedback(e.SpriteBatch);
     }
+
+[EventPriority(EventPriority.Low)]
+private void OnRenderedActiveMenuTooltip(object? sender, RenderedActiveMenuEventArgs e)
+{
+    if (Game1.activeClickableMenu is not GameMenu gameMenu || !IsInventoryPage(gameMenu)
+        || _config.HideHotkeysGlobally)
+        return;
+
+    DrawTabTooltip(e.SpriteBatch);
+    // This tooltip is drawn last so it stays above other UI, but redraw the
+    // software cursor after it so the cursor itself is never hidden underneath.
+    if (!Game1.options.hardwareCursor)
+        gameMenu.drawMouse(e.SpriteBatch, ignore_transparency: true);
+}
 
 
 }

@@ -114,7 +114,7 @@ public sealed partial class ModEntry
             : gaps.GroupBy(gap => gap).OrderByDescending(group => group.Count()).ThenBy(group => group.Key).First().Key;
     }
 
-    private static int[] GetInventoryColumnAnchors(GameMenu menu, int tabY)
+    private static int[] GetInventoryColumnAnchors(GameMenu menu)
     {
         var inventoryPage = GetInventoryPage(menu);
         if (inventoryPage is null)
@@ -125,7 +125,10 @@ public sealed partial class ModEntry
         CollectPageComponentBounds(inventoryPage, components, visited, depth: 0);
 
         return components
-            .Where(bounds => bounds.Y > tabY + 64 && bounds.Width >= 48 && bounds.Width <= 80)
+            // Use the actual inventory slot components. Filtering by an
+            // estimated tab Y can exclude this row after the game recenters
+            // its menu for a resized window.
+            .Where(bounds => bounds.Width >= 48 && bounds.Width <= 80)
             .GroupBy(bounds => bounds.Y)
             .Select(row => row.Select(bounds => bounds.Left).Distinct().OrderBy(x => x).ToArray())
             .Where(columns => columns.Length >= 10)

@@ -19,7 +19,7 @@ public sealed partial class ModEntry
             CancelDeleteConfirmation();
         else if (e.Button == SButton.MouseLeft)
         {
-            var click = e.Cursor.GetScaledScreenPixels().ToPoint();
+            var click = GetCursorPoint(e, _deleteConfirmBounds);
             deleteMenu.receiveLeftClick(click.X, click.Y);
         }
 
@@ -67,16 +67,7 @@ public sealed partial class ModEntry
         }
         else if (e.Button == SButton.MouseLeft)
         {
-            // Use the same scaled screen coordinates as the inventory-tab
-            // click handler, but fall back to Game1's menu coordinates when
-            // the active UI scale makes the event cursor differ.
-            var cursor = e.Cursor.GetScaledScreenPixels().ToPoint();
-            if (!IsEditorInteractivePoint(cursor))
-            {
-                Point gameCursor = new(Game1.getMouseX(), Game1.getMouseY());
-                if (IsEditorInteractivePoint(gameCursor))
-                    cursor = gameCursor;
-            }
+            var cursor = GetCursorPoint(e, _editorBounds);
             HandleEditorClick(cursor.X, cursor.Y);
             Helper.Input.Suppress(e.Button);
             return;

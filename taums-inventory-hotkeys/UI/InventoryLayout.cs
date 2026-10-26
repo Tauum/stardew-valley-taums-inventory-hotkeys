@@ -48,7 +48,7 @@ public sealed partial class ModEntry
         // Align each custom-tab column to the actual inventory item slots shown
         // below the tab strip. Fall back to native tab anchors if the game
         // changes its inventory page internals.
-        int[] inventoryColumnAnchors = GetInventoryColumnAnchors(menu, tabY);
+        int[] inventoryColumnAnchors = GetInventoryColumnAnchors(menu);
         int[] columnAnchors = inventoryColumnAnchors.Length >= _config.Columns ? inventoryColumnAnchors : nativeColumnAnchors;
         var columnSpacing = GetColumnSpacing(columnAnchors, rowWidth);
         _plusTabBounds = leftmostNativeTab is Rectangle nativeTab
@@ -119,14 +119,8 @@ public sealed partial class ModEntry
         _chestSlotSize = inventorySlotSize;
         var panelWidth = _chestGridColumns * _chestSlotSize + 28;
         var panelHeight = _chestGridRows * _chestSlotSize + 24;
-        var viewport = Game1.uiViewport;
-        var inventoryPage = GetInventoryPage(menu);
-        var inventoryLeft = inventoryPage?.xPositionOnScreen ?? menu.xPositionOnScreen;
-        var inventoryWidth = inventoryPage?.width > 0 ? inventoryPage.width : menu.width;
-        var centeredX = inventoryLeft + (inventoryWidth - panelWidth) / 2 + _config.ChestGridOffsetX;
-        var panelX = Math.Clamp(centeredX, Math.Max(viewport.X + 8, inventoryLeft),
-            Math.Max(Math.Max(viewport.X + 8, inventoryLeft), Math.Min(viewport.X + viewport.Width - panelWidth - 8,
-                inventoryLeft + inventoryWidth - panelWidth)));
+        var panelX = (int)Math.Round((Game1.uiViewport.Width - panelWidth) / 2f)
+            + _config.ChestGridOffsetX;
         const int chestGridGapFromTabs = 100;
         var panelY = Math.Max(8, nativeTop - panelHeight - chestGridGapFromTabs + _config.ChestGridOffsetY);
         _chestGridBounds = new Rectangle(panelX, panelY, panelWidth, panelHeight);

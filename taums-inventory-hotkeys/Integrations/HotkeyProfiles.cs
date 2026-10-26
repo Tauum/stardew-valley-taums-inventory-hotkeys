@@ -42,21 +42,14 @@ public sealed partial class ModEntry
         return profiles;
     }
 
-    private bool LoadActiveProfile(bool migrateLegacy = false)
+    private bool LoadActiveProfile()
     {
         try
         {
             var profile = ReadProfile(_config.ActiveProfile);
             if (profile is null)
             {
-                // Preserve existing config.json hotkeys as the first profile on upgrade.
-                if (migrateLegacy && _config.ActiveProfile == 1)
-                {
-                    if (!SaveActiveProfile())
-                        return false;
-                }
-                else
-                    _config.Tabs = new List<HubTab>();
+                _config.Tabs = new List<HubTab>();
             }
             else if (!profile.IsCreated)
             {

@@ -152,8 +152,7 @@ public sealed partial class ModEntry
             ?? ClickableComponent.SNAP_AUTOMATIC;
         _controllerProfilePreviousComponent.rightNeighborID = ProfileNextSnapId;
         _controllerProfileNextComponent.leftNeighborID = ProfilePreviousSnapId;
-        _controllerProfileNextComponent.rightNeighborID = rowEdges.FirstOrDefault()?.Right.myID
-            ?? ClickableComponent.SNAP_AUTOMATIC;
+        _controllerProfileNextComponent.rightNeighborID = ProfilePreviousSnapId;
         if (_controllerAddHotkeyComponent is not null)
         {
             _controllerAddHotkeyComponent.upNeighborID = _config.EnableProfileButtons

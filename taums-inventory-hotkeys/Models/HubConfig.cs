@@ -42,6 +42,7 @@ public sealed class HubConfig
     public bool BlurEnabled { get; set; } = true;
     public int BlurOpacity { get; set; } = 45;
 
+    [System.Text.Json.Serialization.JsonIgnore]
     public List<HubTab> Tabs { get; set; } = new();
 
     public void Normalize()
