@@ -509,7 +509,7 @@ public sealed partial class ModEntry
         DrawConfirmationButton(b, _editorCancelBounds, isOk: false);
         if (_editingTabIndex >= 0)
             DrawTrashButton(b, _editorDeleteBounds);
-        Point cursor = new(Game1.getMouseX(), Game1.getMouseY());
+        Point cursor = GetUiCursorPosition();
         if (!_confirmingDelete)
         {
             var hoverText = cursor switch
@@ -584,7 +584,7 @@ public sealed partial class ModEntry
             new Vector2(_editorIconCounterBounds.Right - iconCounterSize.X,
                 _editorIconCounterBounds.Center.Y - iconCounterSize.Y / 2f),
             Color.SaddleBrown);
-        if (_editorIconDiceBounds.Contains(Game1.getMouseX(), Game1.getMouseY()))
+        if (_editorIconDiceBounds.Contains(GetUiCursorPosition()))
             IClickableMenu.drawHoverText(b, "Random icon", Game1.smallFont);
     }
 
@@ -594,7 +594,7 @@ public sealed partial class ModEntry
             new Vector2(_editorBounds.X + 40, _editorKeybindBounds.Center.Y - Game1.dialogueFont.LineSpacing / 2), Color.SaddleBrown);
         // Match ExitPage.draw exactly: same cursor-sheet 9-slice, hover fill,
         // dialogue font, text color, shadow, and vertical text offset.
-        var keybindHovered = _editorKeybindBounds.Contains(Game1.getMouseX(), Game1.getMouseY());
+        var keybindHovered = _editorKeybindBounds.Contains(GetUiCursorPosition());
         IClickableMenu.drawTextureBox(b, Game1.mouseCursors, new Rectangle(432, 439, 9, 9),
             _editorKeybindBounds.X, _editorKeybindBounds.Y, _editorKeybindBounds.Width, _editorKeybindBounds.Height,
             keybindHovered ? Color.Wheat : Color.White, 4f);
@@ -623,7 +623,7 @@ public sealed partial class ModEntry
 
     private static void DrawTextButton(SpriteBatch b, Rectangle bounds, string text)
     {
-        var hovered = bounds.Contains(Game1.getMouseX(), Game1.getMouseY());
+        var hovered = bounds.Contains(GetUiCursorPosition());
         IClickableMenu.drawTextureBox(b, Game1.mouseCursors, new Rectangle(432, 439, 9, 9),
             bounds.X, bounds.Y, bounds.Width, bounds.Height, hovered ? Color.Wheat : Color.White, 4f);
         var textSize = Game1.smallFont.MeasureString(text);

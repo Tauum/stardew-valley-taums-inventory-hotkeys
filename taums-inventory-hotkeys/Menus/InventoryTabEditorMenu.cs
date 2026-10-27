@@ -76,9 +76,10 @@ public sealed partial class ModEntry
         public void ActivateFocused()
         {
             var focused = FocusedComponent;
-            if (focused.myID == EditorNameSnapId || _mod._editorNameBounds.Contains(Game1.getMouseX(), Game1.getMouseY()))
+            var cursor = GetUiCursorPosition();
+            if (focused.myID == EditorNameSnapId || _mod._editorNameBounds.Contains(cursor))
                 _mod.OpenNativeNameInput(this);
-            else if (focused.myID == EditorDescriptionSnapId || _mod._editorDescriptionBounds.Contains(Game1.getMouseX(), Game1.getMouseY()))
+            else if (focused.myID == EditorDescriptionSnapId || _mod._editorDescriptionBounds.Contains(cursor))
                 _mod.OpenNativeDescriptionInput(this);
             else
                 _mod.HandleEditorClick(focused.bounds.Center.X, focused.bounds.Center.Y);

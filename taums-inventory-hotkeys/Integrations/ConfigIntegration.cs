@@ -43,23 +43,12 @@ public sealed partial class ModEntry
             () => "Choose a saved hotkey profile. Reopen settings after switching to refresh the shortcut list.",
             allowedValues: GetCreatedProfileNumbers().Select(index => index.ToString()).ToArray(),
             formatAllowedValue: value => $"Profile {value}");
-        AddProfileActions();
         _gmcmApi.AddBoolOption(ModManifest, () => _config.HideHotkeysGlobally,
             value => { _config.HideHotkeysGlobally = value; _layoutDirty = true; },
             () => "Globally hide", () => "Hide the hotkey tabs and Add hotkey button in the inventory. Off by default.");
-        _gmcmApi.AddBoolOption(ModManifest, () => _config.EnableProfileButtons,
-            value => { _config.EnableProfileButtons = value; _layoutDirty = true; },
-            () => "Profile buttons", () => "Show arrows beside Add hotkey to switch between saved hotkey profiles. On by default.");
         _gmcmApi.AddBoolOption(ModManifest, () => _config.EnableDebugLogs,
             value => _config.EnableDebugLogs = value,
             () => "Debug logs", () => "Write detailed diagnostic messages to the SMAPI console. Off by default.");
-        _gmcmApi.AddTextOption(ModManifest,
-            () => _config.ProfileSwitcherPosition,
-            value => { _config.ProfileSwitcherPosition = value; _layoutDirty = true; },
-            () => "Profile switcher position",
-            () => "Choose whether profile arrows appear above the Create hotkey icon or beside the chest-style grid.",
-            allowedValues: new[] { "AboveAdd", "BesideChestGrid" },
-            formatAllowedValue: value => value == "BesideChestGrid" ? "Beside chest grid" : "Above Create icon");
         _gmcmApi.AddSectionTitle(ModManifest, () => "Menu appearance");
         _gmcmApi.AddBoolOption(ModManifest, () => _config.BlurEnabled,
             value => _config.BlurEnabled = value,
@@ -69,6 +58,17 @@ public sealed partial class ModEntry
             () => "Blur opacity", () => "Opacity of the blurred background (0% shows the normal background).",
             min: 0, max: 100, interval: 5, formatValue: value => $"{value}%");
         _gmcmApi.AddSectionTitle(ModManifest, () => "Hotkey grid");
+        _gmcmApi.AddBoolOption(ModManifest, () => _config.EnableProfileButtons,
+            value => { _config.EnableProfileButtons = value; _layoutDirty = true; },
+            () => "Profile buttons", () => "Show arrows beside Add hotkey to switch between saved hotkey profiles. On by default.");
+        _gmcmApi.AddTextOption(ModManifest,
+            () => _config.ProfileSwitcherPosition,
+            value => { _config.ProfileSwitcherPosition = value; _layoutDirty = true; },
+            () => "Profile switcher position",
+            () => "Choose whether profile arrows appear above the Create hotkey icon or beside the chest-style grid.",
+            allowedValues: new[] { "AboveAdd", "BesideChestGrid" },
+            formatAllowedValue: value => value == "BesideChestGrid" ? "Beside chest grid" : "Above Create icon");
+        AddProfileActions();
         _gmcmApi.AddTextOption(ModManifest,
             () => _config.HotkeyStyle,
             value => { _config.HotkeyStyle = value; _layoutDirty = true; },
@@ -184,11 +184,11 @@ public sealed partial class ModEntry
         if (!controller)
         {
             DrawSettingsButton(batch, bounds, bindings.IsBound ? FormatSettingsBindings(bindings) : "",
-                Game1.smallFont, 24);
+                Game1.smallFont, 24, useUiCursor: true);
             return;
         }
 
-        DrawSettingsButton(batch, bounds, "", Game1.smallFont, 24);
+        DrawSettingsButton(batch, bounds, "", Game1.smallFont, 24, useUiCursor: true);
         if (!bindings.IsBound)
             return;
 
@@ -260,11 +260,13 @@ public sealed partial class ModEntry
         DrawSettingsButton(batch, bounds, label, Game1.dialogueFont, 16);
     }
 
-    private static void DrawSettingsButton(SpriteBatch batch, Rectangle bounds, string label, SpriteFont font, int horizontalPadding)
+    private static void DrawSettingsButton(SpriteBatch batch, Rectangle bounds, string label, SpriteFont font,
+        int horizontalPadding, bool useUiCursor = false)
     {
         // Match the Edit keybind button in Add Hotkey: vanilla cursor-sheet 9-slice,
         // wheat hover tint, dialogue-style shadowed text, and its vertical offset.
-        var hovered = bounds.Contains(Game1.getMouseX(), Game1.getMouseY());
+        var cursor = useUiCursor ? GetUiCursorPosition() : new Point(Game1.getMouseX(), Game1.getMouseY());
+        var hovered = bounds.Contains(cursor);
         IClickableMenu.drawTextureBox(batch, Game1.mouseCursors, new Rectangle(432, 439, 9, 9),
             bounds.X, bounds.Y, bounds.Width, bounds.Height, hovered ? Color.Wheat : Color.White, 4f);
         var fitted = FitText(label, font, bounds.Width - horizontalPadding);
@@ -286,13 +288,14 @@ public sealed partial class ModEntry
             _gmcmDropdownTypeResolved = true;
         }
         var point = e.Cursor.GetScaledScreenPixels().ToPoint();
+        var uiPoint = GetUiCursorPosition();
         var gamePoint = new Point(Game1.getMouseX(), Game1.getMouseY());
         if (IsClickInsideGmcmDropdown(point, gamePoint))
             return false;
 
         foreach (var (id, bounds) in _gmcmControlBounds.ToArray())
         {
-            if ((!bounds.Contains(point) && !bounds.Contains(gamePoint))
+            if (!bounds.Contains(uiPoint)
                 || !_gmcmControlActions.TryGetValue(id, out var open))
                 continue;
             Helper.Input.Suppress(e.Button);
@@ -319,7 +322,7 @@ public sealed partial class ModEntry
         return false;
     }
 
-    private bool IsClickInsideGmcmDropdown(Point firstPoint, Point secondPoint)
+    private bool IsClickInsideGmcmDropdown(Point point, Point gamePoint)
     {
         if (_gmcmDropdownType is null)
             return false;
@@ -335,7 +338,7 @@ public sealed partial class ModEntry
             foreach (var field in type.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
             {
                 if (field.FieldType == typeof(Rectangle) && field.GetValue(dropdown) is Rectangle bounds
-                    && (bounds.Contains(firstPoint) || bounds.Contains(secondPoint)))
+                    && (bounds.Contains(point) || bounds.Contains(gamePoint)))
                     return true;
             }
             foreach (var property in type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
@@ -343,7 +346,7 @@ public sealed partial class ModEntry
                 if (property.PropertyType == typeof(Rectangle)
                     && property.GetIndexParameters().Length == 0
                     && property.GetValue(dropdown) is Rectangle bounds
-                    && (bounds.Contains(firstPoint) || bounds.Contains(secondPoint)))
+                    && (bounds.Contains(point) || bounds.Contains(gamePoint)))
                     return true;
             }
         }

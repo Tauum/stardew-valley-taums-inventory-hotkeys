@@ -17,7 +17,7 @@ public sealed partial class ModEntry
         {
             if (button == Buttons.A
                 && (currentlySnappedComponent == textBoxCC
-                    || textBoxCC.bounds.Contains(Game1.getMouseX(), Game1.getMouseY())))
+                    || textBoxCC.bounds.Contains(GetUiCursorPosition())))
             {
                 receiveLeftClick(textBoxCC.bounds.Center.X, textBoxCC.bounds.Center.Y);
                 return;

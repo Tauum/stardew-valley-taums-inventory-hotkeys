@@ -19,7 +19,7 @@ public sealed partial class ModEntry
             CancelDeleteConfirmation();
         else if (e.Button == SButton.MouseLeft)
         {
-            var click = GetCursorPoint(e, _deleteConfirmBounds);
+            var click = GetUiCursorPosition();
             deleteMenu.receiveLeftClick(click.X, click.Y);
         }
 
@@ -67,7 +67,7 @@ public sealed partial class ModEntry
         }
         else if (e.Button == SButton.MouseLeft)
         {
-            var cursor = GetCursorPoint(e, _editorBounds);
+            var cursor = GetUiCursorPosition();
             HandleEditorClick(cursor.X, cursor.Y);
             Helper.Input.Suppress(e.Button);
             return;
@@ -124,7 +124,7 @@ public sealed partial class ModEntry
 
         if (e.Button == SButton.MouseLeft)
         {
-            Point overlayCursor = e.Cursor.GetScaledScreenPixels().ToPoint();
+            Point overlayCursor = GetUiCursorPosition();
             // Monitor.Log($"Keybind sub-modal click at ({overlayCursor.X},{overlayCursor.Y}); forwarding to GMCM overlay.", LogLevel.Info);
             InvokeGmcmOverlay("OnLeftClick", overlayCursor.X, overlayCursor.Y);
         }
